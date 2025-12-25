@@ -1,6 +1,18 @@
-# Railway Deployment - Fixed Issues
+# Railway Deployment - All Issues Fixed
 
-## Issues Fixed
+## Latest Fixes (Build 3) ✅
+
+### **Critical Path Resolution Error** ✅
+- **Problem**: `import.meta.dirname` doesn't work in bundled esbuild code, causing "paths[0] argument must be of type string" error
+- **Fix**: Replaced with `fileURLToPath` and `__dirname` in [server/_core/vite.ts](server/_core/vite.ts)
+
+### **OAuth Configuration Made Optional** ✅
+- **Problem**: App was crashing when OAUTH_SERVER_URL wasn't set
+- **Fix**: Made OAuth routes conditional - they only register if configured
+  - Updated [server/_core/oauth.ts](server/_core/oauth.ts)
+  - Updated [server/_core/sdk.ts](server/_core/sdk.ts)
+
+## Previous Fixes
 
 ### 1. **Vite Build Resolution Error** ✅
 - **Problem**: The build was failing because `index.html` used an absolute path `/src/main.tsx` which Vite couldn't resolve
