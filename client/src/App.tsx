@@ -11,6 +11,10 @@ import OrderSuccess from "./pages/OrderSuccess";
 import OrderTracking from "./pages/OrderTracking";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
+import AboutUs from "./pages/AboutUs";
+import ContactUs from "./pages/ContactUs";
+import RefundPolicy from "./pages/RefundPolicy";
+import TermsConditions from "./pages/TermsConditions";
 
 function Router() {
   return (
@@ -22,6 +26,10 @@ function Router() {
       <Route path={"/order-tracking"} component={OrderTracking} />
       <Route path={"/admin/login"} component={AdminLogin} />
       <Route path={"/admin/dashboard"} component={AdminDashboard} />
+      <Route path={"/about"} component={AboutUs} />
+      <Route path={"/contact"} component={ContactUs} />
+      <Route path={"/refund-policy"} component={RefundPolicy} />
+      <Route path={"/terms"} component={TermsConditions} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

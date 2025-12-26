@@ -163,24 +163,26 @@ export default function Menu() {
         </div>
 
         {/* Category Filter */}
-        <div className="flex gap-2 overflow-x-auto pb-3 mb-4 -mx-4 px-4 no-scrollbar">
-          {categories.map((category) => {
-            const IconComponent = categoryIcons[category as string] || Droplet;
-            return (
-              <button
-                key={category}
-                onClick={() => setActiveCategory(category as string)}
-                className={`px-4 py-2 rounded-full font-medium transition-all flex items-center gap-1.5 whitespace-nowrap text-sm ${
-                  activeCategory === category
-                    ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md'
-                    : 'bg-white text-gray-600 border border-gray-200'
-                }`}
-              >
-                <IconComponent className="w-4 h-4" />
-                {category}
-              </button>
-            );
-          })}
+        <div className="flex justify-center mb-6">
+          <div className="inline-flex flex-wrap justify-center gap-2 bg-gray-100/80 p-2 rounded-2xl">
+            {categories.map((category) => {
+              const IconComponent = categoryIcons[category as string] || Droplet;
+              return (
+                <button
+                  key={category}
+                  onClick={() => setActiveCategory(category as string)}
+                  className={`px-4 py-2.5 rounded-xl font-medium transition-all flex items-center gap-2 whitespace-nowrap text-sm ${
+                    activeCategory === category
+                      ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg'
+                      : 'bg-white text-gray-600 hover:bg-gray-50 shadow-sm'
+                  }`}
+                >
+                  <IconComponent className="w-4 h-4" />
+                  {category}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Menu Grid */}

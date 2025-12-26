@@ -166,14 +166,64 @@ export default function Home() {
       {/* Footer */}
       <footer className="bg-gray-900 text-white mt-24">
         <div className="container mx-auto px-4 py-12">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-amber-500 rounded-xl flex items-center justify-center">
-                <Droplet className="w-6 h-6 text-white" />
+          {/* Main Footer Content */}
+          <div className="flex flex-col md:flex-row justify-between items-start gap-8 mb-8">
+            {/* Brand */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-amber-500 rounded-xl flex items-center justify-center">
+                  <Droplet className="w-6 h-6 text-white" />
+                </div>
+                <span className="text-xl font-bold">FreshSip</span>
               </div>
-              <span className="text-xl font-bold">FreshSip</span>
+              <p className="text-gray-400 text-sm max-w-xs">Fresh, natural juices for the SAU family. Made with love, served with a smile.</p>
             </div>
-            <p className="text-gray-400">&copy; 2025 FreshSip Juice Bar. Made with ❤️ for juice lovers.</p>
+
+            {/* Quick Links */}
+            <div className="flex flex-col gap-2">
+              <h4 className="font-semibold text-white mb-1">Quick Links</h4>
+              <Link href="/menu">
+                <span className="text-gray-400 hover:text-orange-400 transition-colors text-sm cursor-pointer">Menu</span>
+              </Link>
+              <Link href="/order-tracking">
+                <span className="text-gray-400 hover:text-orange-400 transition-colors text-sm cursor-pointer">Track Order</span>
+              </Link>
+            </div>
+
+            {/* Legal */}
+            <div className="flex flex-col gap-2">
+              <h4 className="font-semibold text-white mb-1">Legal</h4>
+              <Link href="/about">
+                <span className="text-gray-400 hover:text-orange-400 transition-colors text-sm cursor-pointer">About Us</span>
+              </Link>
+              <Link href="/contact">
+                <span className="text-gray-400 hover:text-orange-400 transition-colors text-sm cursor-pointer">Contact Us</span>
+              </Link>
+              <Link href="/refund-policy">
+                <span className="text-gray-400 hover:text-orange-400 transition-colors text-sm cursor-pointer">Refund & Cancellation</span>
+              </Link>
+              <Link href="/terms">
+                <span className="text-gray-400 hover:text-orange-400 transition-colors text-sm cursor-pointer">Terms & Conditions</span>
+              </Link>
+            </div>
+
+            {/* Contact */}
+            <div className="flex flex-col gap-2">
+              <h4 className="font-semibold text-white mb-1">Contact</h4>
+              <p className="text-gray-400 text-sm">Academic Building, SAU</p>
+              <p className="text-gray-400 text-sm">Gaushala Road, 110068</p>
+              <a href="mailto:support@qikcart.in" className="text-orange-400 hover:text-orange-300 transition-colors text-sm">support@qikcart.in</a>
+            </div>
+          </div>
+
+          {/* Bottom Bar */}
+          <div className="border-t border-gray-800 pt-6 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-gray-500 text-sm">&copy; 2025 FreshSip Juice Bar. Made with ❤️ for the SAU family.</p>
+            <div className="flex gap-4 text-gray-500 text-xs">
+              <Link href="/terms"><span className="hover:text-gray-400 cursor-pointer">Terms</span></Link>
+              <Link href="/refund-policy"><span className="hover:text-gray-400 cursor-pointer">Refund</span></Link>
+              <Link href="/contact"><span className="hover:text-gray-400 cursor-pointer">Contact</span></Link>
+            </div>
           </div>
         </div>
       </footer>
