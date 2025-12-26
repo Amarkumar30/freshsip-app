@@ -177,6 +177,17 @@ async function createTables() {
     console.log('  Renamed addOnIds to addOnsData');
   } catch (e) { /* Column doesn't exist or already renamed */ }
 
+  // Drop old columns if they still exist after adding new ones
+  try {
+    await connection.execute(`ALTER TABLE orderItems DROP COLUMN unitPrice`);
+    console.log('  Dropped old unitPrice column');
+  } catch (e) { /* Column doesn't exist */ }
+  
+  try {
+    await connection.execute(`ALTER TABLE orderItems DROP COLUMN addOnIds`);
+    console.log('  Dropped old addOnIds column');
+  } catch (e) { /* Column doesn't exist */ }
+
   console.log('✓ Tables created/verified');
 }
 
