@@ -79,7 +79,7 @@ async function createTables() {
       orderNumber VARCHAR(50) NOT NULL UNIQUE,
       userId INT,
       customerName VARCHAR(255) NOT NULL,
-      customerPhone VARCHAR(20),
+      customerPhone VARCHAR(20) DEFAULT NULL,
       status ENUM('pending', 'confirmed', 'preparing', 'ready', 'completed', 'cancelled') DEFAULT 'pending' NOT NULL,
       totalAmount DECIMAL(10,2) NOT NULL,
       paymentStatus ENUM('pending', 'completed', 'failed', 'refunded') DEFAULT 'pending' NOT NULL,
@@ -96,6 +96,12 @@ async function createTables() {
       INDEX idx_orders_razorpayOrderId (razorpayOrderId)
     )
   `);
+
+  // Fix customerPhone column to allow NULL (for existing tables)
+  try {
+    await connection.execute(`ALTER TABLE orders MODIFY COLUMN customerPhone VARCHAR(20) DEFAULT NULL`);
+    console.log('  Fixed customerPhone column to allow NULL');
+  } catch (e) { /* Column already correct */ }
 
   // Add missing columns if table already exists (for migrations)
   try {
