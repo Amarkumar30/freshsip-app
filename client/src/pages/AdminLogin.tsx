@@ -1,115 +1,153 @@
-import { useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Link } from "wouter";
-import { useAuth } from "@/_core/hooks/useAuth";
-import { getLoginUrl } from "@/const";
-import { Droplet, LogIn, Lock } from "lucide-react";
+import { Droplet, Lock, User, Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
+// Admin credentials - in production, this should be server-side
+const ADMIN_CREDENTIALS = {
+  username: "sanjeet",
+  password: "sanjeet@sau405"
+};
+
 export default function AdminLogin() {
-  const { user, isAuthenticated, loading } = useAuth();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    // If user is already logged in and is admin, redirect to dashboard
-    if (isAuthenticated && user?.role === "admin") {
-      window.location.href = "/admin/dashboard";
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!username.trim() || !password.trim()) {
+      toast.error("Please enter username and password");
+      return;
     }
-  }, [isAuthenticated, user]);
 
-  const handleLogin = () => {
-    const loginUrl = getLoginUrl();
-    window.location.href = loginUrl;
+    setIsLoading(true);
+
+    // Simulate a slight delay for UX
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
+      // Store admin session
+      localStorage.setItem("adminAuth", JSON.stringify({
+        isAuthenticated: true,
+        username: username,
+        loginTime: Date.now()
+      }));
+      
+      toast.success("Welcome back, Sanjeet! 👋");
+      window.location.href = "/admin/dashboard";
+    } else {
+      toast.error("Invalid username or password");
+      setIsLoading(false);
+    }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin">
-            <Droplet className="w-12 h-12 text-orange-500 mx-auto" />
-          </div>
-          <p className="mt-4 text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-indigo-800 flex items-center justify-center p-4">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iNCIvPjwvZz48L2c+PC9zdmc+')] opacity-50"></div>
+      
+      <div className="relative w-full max-w-md">
+        {/* Logo */}
+        <div className="text-center mb-8">
           <Link href="/">
-            <div className="flex items-center gap-2 cursor-pointer">
-              <Droplet className="w-8 h-8 text-orange-500" />
-              <h1 className="text-2xl font-bold text-gray-900">FreshSip</h1>
+            <div className="inline-flex items-center gap-3 cursor-pointer">
+              <div className="w-14 h-14 bg-gradient-to-br from-orange-400 to-amber-500 rounded-2xl flex items-center justify-center shadow-xl">
+                <Droplet className="w-8 h-8 text-white" />
+              </div>
+              <div className="text-left">
+                <h1 className="text-2xl font-bold text-white">FreshSip</h1>
+                <p className="text-purple-200 text-sm">Admin Panel</p>
+              </div>
             </div>
           </Link>
         </div>
-      </header>
 
-      <main className="container mx-auto px-4 py-16">
-        <div className="max-w-md mx-auto">
-          <Card className="p-12">
-            {/* Icon */}
-            <div className="text-center mb-8">
-              <div className="inline-block p-4 bg-blue-100 rounded-full mb-4">
-                <Lock className="w-8 h-8 text-blue-600" />
-              </div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">Admin Panel</h2>
-              <p className="text-gray-600">
-                Sign in to manage orders and shop operations
-              </p>
+        <Card className="p-8 bg-white/10 backdrop-blur-xl border-white/20 shadow-2xl">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-orange-400 to-amber-500 rounded-2xl mb-4 shadow-lg">
+              <Lock className="w-8 h-8 text-white" />
             </div>
-
-            {/* Login Info */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8">
-              <p className="text-sm text-blue-900">
-                <strong>Note:</strong> Only authorized shop owners can access the admin panel. 
-                Please use your Gmail account registered with FreshSip.
-              </p>
-            </div>
-
-            {/* Login Button */}
-            <Button
-              onClick={handleLogin}
-              className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold mb-4"
-            >
-              <LogIn className="w-5 h-5 mr-2" />
-              Sign in with Google
-            </Button>
-
-            {/* Error Message */}
-            {isAuthenticated && user?.role !== "admin" && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-                <p className="text-sm text-red-900">
-                  Your account doesn't have admin access. Please contact the shop owner.
-                </p>
-              </div>
-            )}
-
-            {/* Back Link */}
-            <div className="text-center mt-8">
-              <Link href="/">
-                <Button variant="ghost" className="text-blue-600 hover:text-blue-700">
-                  Back to Home
-                </Button>
-              </Link>
-            </div>
-          </Card>
-
-          {/* Help Section */}
-          <div className="mt-8 text-center text-gray-600 text-sm">
-            <p>
-              Having trouble logging in?{" "}
-              <a href="mailto:support@freshsip.com" className="text-blue-600 hover:underline">
-                Contact support
-              </a>
-            </p>
+            <h2 className="text-2xl font-bold text-white mb-2">Welcome Back</h2>
+            <p className="text-purple-200">Sign in to manage your shop</p>
           </div>
-        </div>
-      </main>
+
+          {/* Login Form */}
+          <form onSubmit={handleLogin} className="space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-purple-200 mb-2">Username</label>
+              <div className="relative">
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Enter your username"
+                  className="pl-12 h-12 bg-white/10 border-white/20 text-white placeholder:text-gray-400 focus:bg-white/20 focus:border-orange-400"
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-purple-200 mb-2">Password</label>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  className="pl-12 pr-12 h-12 bg-white/10 border-white/20 text-white placeholder:text-gray-400 focus:bg-white/20 focus:border-orange-400"
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
+
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="w-full h-12 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold text-lg rounded-xl shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                "Sign In"
+              )}
+            </Button>
+          </form>
+
+          {/* Footer */}
+          <div className="mt-8 text-center">
+            <Link href="/">
+              <button className="text-purple-200 hover:text-white transition-colors text-sm">
+                ← Back to Home
+              </button>
+            </Link>
+          </div>
+        </Card>
+
+        {/* Security Note */}
+        <p className="text-center text-purple-300/50 text-xs mt-6">
+          🔒 Secure admin access only
+        </p>
+      </div>
     </div>
   );
 }

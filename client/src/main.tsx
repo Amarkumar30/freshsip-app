@@ -43,9 +43,31 @@ const trpcClient = trpc.createClient({
       url: "/api/trpc",
       transformer: superjson,
       fetch(input, init) {
+        // Get admin token from localStorage if available
+        let headers: Record<string, string> = {};
+        try {
+          const auth = localStorage.getItem("adminAuth");
+          if (auth) {
+            const parsed = JSON.parse(auth);
+            if (parsed.isAuthenticated) {
+              const token = btoa(JSON.stringify({
+                username: parsed.username,
+                password: "sanjeet@sau405"
+              }));
+              headers["x-admin-token"] = token;
+            }
+          }
+        } catch (e) {
+          // ignore
+        }
+        
         return globalThis.fetch(input, {
           ...(init ?? {}),
           credentials: "include",
+          headers: {
+            ...(init?.headers ?? {}),
+            ...headers,
+          },
         });
       },
     }),

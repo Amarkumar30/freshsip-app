@@ -17,7 +17,31 @@ if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
   });
 }
 
-// Helper to check if user is admin
+// Simple admin credentials (in production, use environment variables)
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "sanjeet";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "sanjeet@sau405";
+
+// Simple admin auth procedure - validates adminToken header
+const simpleAdminProcedure = publicProcedure.use(async ({ ctx, next }) => {
+  const adminToken = ctx.req.headers["x-admin-token"] as string;
+  
+  if (!adminToken) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "Admin authentication required" });
+  }
+  
+  try {
+    const decoded = JSON.parse(Buffer.from(adminToken, 'base64').toString());
+    if (decoded.username !== ADMIN_USERNAME || decoded.password !== ADMIN_PASSWORD) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "Invalid admin credentials" });
+    }
+  } catch (e) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Invalid admin token" });
+  }
+  
+  return next({ ctx });
+});
+
+// Legacy OAuth admin procedure (kept for compatibility)
 const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
   if (ctx.user?.role !== "admin") {
     throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
@@ -268,7 +292,23 @@ export const appRouter = router({
 
   // Admin procedures
   admin: router({
-    getAllOrders: adminProcedure.query(async () => {
+    // Verify admin credentials
+    login: publicProcedure
+      .input(z.object({
+        username: z.string(),
+        password: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        if (input.username === ADMIN_USERNAME && input.password === ADMIN_PASSWORD) {
+          return {
+            success: true,
+            token: Buffer.from(JSON.stringify({ username: input.username, password: input.password })).toString('base64'),
+          };
+        }
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid credentials" });
+      }),
+
+    getAllOrders: simpleAdminProcedure.query(async () => {
       try {
         return await db.getAllOrders();
       } catch (error) {
@@ -280,7 +320,7 @@ export const appRouter = router({
       }
     }),
 
-    getOrdersByStatus: adminProcedure
+    getOrdersByStatus: simpleAdminProcedure
       .input(z.object({ status: z.string() }))
       .query(async ({ input }) => {
         try {
@@ -294,7 +334,7 @@ export const appRouter = router({
         }
       }),
 
-    getOrderDetails: adminProcedure
+    getOrderDetails: simpleAdminProcedure
       .input(z.object({ orderId: z.number() }))
       .query(async ({ input }) => {
         try {
@@ -323,14 +363,14 @@ export const appRouter = router({
         }
       }),
 
-    updateOrderStatus: adminProcedure
+    updateOrderStatus: simpleAdminProcedure
       .input(
         z.object({
           orderId: z.number(),
           status: z.enum(["pending", "confirmed", "ready", "completed", "cancelled"]),
         })
       )
-      .mutation(async ({ input, ctx }) => {
+      .mutation(async ({ input }) => {
         try {
           const order = await db.getOrderById(input.orderId);
           if (!order) {
@@ -341,13 +381,16 @@ export const appRouter = router({
           }
 
           // Update order status (this also records history)
-          await db.updateOrderStatus(input.orderId, input.status, ctx.user?.id);
+          await db.updateOrderStatus(input.orderId, input.status);
 
-          // Emit update event to admin panel
+          // Emit update event to admin panel and customer tracking
           emitOrderUpdate(input.orderId, {
             status: input.status,
             updatedAt: new Date(),
           });
+          
+          // Also emit status change for customer order tracking
+          emitOrderStatusChange(order.orderNumber, input.status);
 
           return {
             success: true,
@@ -361,6 +404,19 @@ export const appRouter = router({
           });
         }
       }),
+      
+    // Analytics endpoints
+    getMenuItems: simpleAdminProcedure.query(async () => {
+      try {
+        return await db.getAllMenuItems();
+      } catch (error) {
+        console.error("Error fetching menu items:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to fetch menu items",
+        });
+      }
+    }),
   }),
 });
 
