@@ -188,6 +188,19 @@ async function createTables() {
     console.log('  Dropped old addOnIds column');
   } catch (e) { /* Column doesn't exist */ }
 
+  // Create orderStatusHistory table (for tracking status changes)
+  await connection.execute(`
+    CREATE TABLE IF NOT EXISTS orderStatusHistory (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      orderId INT NOT NULL,
+      oldStatus VARCHAR(50) NOT NULL,
+      newStatus VARCHAR(50) NOT NULL,
+      changedBy VARCHAR(255),
+      timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+      INDEX idx_orderStatusHistory_orderId (orderId)
+    )
+  `);
+
   console.log('✓ Tables created/verified');
 }
 
