@@ -147,63 +147,139 @@ async function seed() {
     }
     console.log('✓ Add-ons added');
 
-    // Insert menu items
+    // Insert menu items - clear existing and add fresh
+    await connection.execute('DELETE FROM menuItems');
+    
     const menuItems = [
+      // Fruit Juices
       {
         name: 'Orange Juice',
-        description: 'Fresh squeezed orange juice, rich in vitamin C',
+        description: 'Fresh squeezed orange juice, bursting with vitamin C and natural sweetness',
         basePrice: 80,
-        category: 'Citrus',
-        image: 'https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=400&h=400&fit=crop',
+        category: 'Fruit Juices',
+        image: 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=500&h=500&fit=crop',
       },
       {
         name: 'Mango Juice',
-        description: 'Sweet and creamy mango juice, king of fruits',
+        description: 'Creamy Alphonso mango juice, the king of tropical fruits',
         basePrice: 100,
-        category: 'Tropical',
-        image: 'https://images.unsplash.com/photo-1599599810694-b5ac4dd64b73?w=400&h=400&fit=crop',
+        category: 'Fruit Juices',
+        image: 'https://images.unsplash.com/photo-1546173159-315724a31696?w=500&h=500&fit=crop',
       },
       {
         name: 'Watermelon Juice',
-        description: 'Refreshing watermelon juice, perfect for summer',
+        description: 'Cool and refreshing watermelon juice, perfect for hot days',
         basePrice: 70,
-        category: 'Seasonal',
-        image: 'https://images.unsplash.com/photo-1585518419759-fce0e1e37fcc?w=400&h=400&fit=crop',
-      },
-      {
-        name: 'Pomegranate Juice',
-        description: 'Antioxidant-rich pomegranate juice',
-        basePrice: 120,
-        category: 'Premium',
-        image: 'https://images.unsplash.com/photo-1585518419759-fce0e1e37fcc?w=400&h=400&fit=crop',
-      },
-      {
-        name: 'Mixed Fruit Juice',
-        description: 'Blend of orange, apple, and pineapple',
-        basePrice: 90,
-        category: 'Mixed',
-        image: 'https://images.unsplash.com/photo-1599599810694-b5ac4dd64b73?w=400&h=400&fit=crop',
+        category: 'Fruit Juices',
+        image: 'https://images.unsplash.com/photo-1582979512210-99b6a53386f9?w=500&h=500&fit=crop',
       },
       {
         name: 'Pineapple Juice',
-        description: 'Tropical pineapple juice with natural sweetness',
+        description: 'Tropical pineapple juice with a perfect tangy-sweet balance',
         basePrice: 85,
-        category: 'Tropical',
-        image: 'https://images.unsplash.com/photo-1585518419759-fce0e1e37fcc?w=400&h=400&fit=crop',
+        category: 'Fruit Juices',
+        image: 'https://images.unsplash.com/photo-1544252890-c3e95e867a2b?w=500&h=500&fit=crop',
       },
       {
-        name: 'Carrot Juice',
-        description: 'Nutritious carrot juice, good for eyesight',
-        basePrice: 75,
-        category: 'Vegetable',
-        image: 'https://images.unsplash.com/photo-1585518419759-fce0e1e37fcc?w=400&h=400&fit=crop',
+        name: 'Pomegranate Juice',
+        description: 'Ruby red antioxidant-rich pomegranate juice for health lovers',
+        basePrice: 120,
+        category: 'Fruit Juices',
+        image: 'https://images.unsplash.com/photo-1553530666-ba11a7da3888?w=500&h=500&fit=crop',
       },
       {
         name: 'Apple Juice',
-        description: 'Crisp and refreshing apple juice',
+        description: 'Crisp and naturally sweet fresh apple juice',
         basePrice: 80,
-        category: 'Citrus',
-        image: 'https://images.unsplash.com/photo-1585518419759-fce0e1e37fcc?w=400&h=400&fit=crop',
+        category: 'Fruit Juices',
+        image: 'https://images.unsplash.com/photo-1576673442511-7e39b6545c87?w=500&h=500&fit=crop',
+      },
+      {
+        name: 'Mixed Fruit Juice',
+        description: 'A delightful blend of seasonal fruits bursting with flavors',
+        basePrice: 90,
+        category: 'Fruit Juices',
+        image: 'https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=500&h=500&fit=crop',
+      },
+      // Shakes
+      {
+        name: 'Badam Shake',
+        description: 'Creamy almond milkshake with roasted almonds and a hint of cardamom',
+        basePrice: 130,
+        category: 'Shakes',
+        image: 'https://images.unsplash.com/photo-1579954115545-a95591f28bfc?w=500&h=500&fit=crop',
+      },
+      {
+        name: 'Oreo Shake',
+        description: 'Indulgent cookies and cream shake topped with crushed Oreos',
+        basePrice: 140,
+        category: 'Shakes',
+        image: 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=500&h=500&fit=crop',
+      },
+      {
+        name: 'Strawberry Shake',
+        description: 'Luscious strawberry milkshake made with fresh strawberries',
+        basePrice: 120,
+        category: 'Shakes',
+        image: 'https://images.unsplash.com/photo-1579954115563-e72bf1381629?w=500&h=500&fit=crop',
+      },
+      {
+        name: 'Banana Shake',
+        description: 'Classic banana milkshake, creamy and naturally sweet',
+        basePrice: 100,
+        category: 'Shakes',
+        image: 'https://images.unsplash.com/photo-1553787499-6f9133860278?w=500&h=500&fit=crop',
+      },
+      {
+        name: 'Chocolate Shake',
+        description: 'Rich and decadent chocolate milkshake for chocolate lovers',
+        basePrice: 130,
+        category: 'Shakes',
+        image: 'https://images.unsplash.com/photo-1541658016709-82535e94bc69?w=500&h=500&fit=crop',
+      },
+      {
+        name: 'Mango Shake',
+        description: 'Thick and creamy mango milkshake, summer in a glass',
+        basePrice: 120,
+        category: 'Shakes',
+        image: 'https://images.unsplash.com/photo-1623065422902-30a2d299bbe4?w=500&h=500&fit=crop',
+      },
+      // Special Drinks
+      {
+        name: 'Traffic Jam',
+        description: 'Colorful layered smoothie with strawberry, mango, and kiwi',
+        basePrice: 150,
+        category: 'Special',
+        image: 'https://images.unsplash.com/photo-1502741224143-90386d7f8c82?w=500&h=500&fit=crop',
+      },
+      {
+        name: 'Green Detox',
+        description: 'Healthy blend of spinach, apple, cucumber, and mint',
+        basePrice: 110,
+        category: 'Special',
+        image: 'https://images.unsplash.com/photo-1610970881699-44a5587cabec?w=500&h=500&fit=crop',
+      },
+      {
+        name: 'Berry Blast',
+        description: 'Mixed berries smoothie with blueberries, raspberries, and strawberries',
+        basePrice: 140,
+        category: 'Special',
+        image: 'https://images.unsplash.com/photo-1553530979-7ee52a2670c4?w=500&h=500&fit=crop',
+      },
+      // Vegetable Juices
+      {
+        name: 'Carrot Juice',
+        description: 'Fresh carrot juice, sweet and packed with beta-carotene',
+        basePrice: 75,
+        category: 'Vegetable',
+        image: 'https://images.unsplash.com/photo-1623142171936-5a8247e47b58?w=500&h=500&fit=crop',
+      },
+      {
+        name: 'Beetroot Juice',
+        description: 'Earthy beetroot juice, great for stamina and blood health',
+        basePrice: 80,
+        category: 'Vegetable',
+        image: 'https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=500&h=500&fit=crop',
       },
     ];
 
