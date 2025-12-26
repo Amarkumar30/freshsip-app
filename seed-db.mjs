@@ -82,13 +82,46 @@ async function createTables() {
       customerPhone VARCHAR(20),
       status ENUM('pending', 'confirmed', 'preparing', 'ready', 'completed', 'cancelled') DEFAULT 'pending' NOT NULL,
       totalAmount DECIMAL(10,2) NOT NULL,
+      paymentStatus ENUM('pending', 'completed', 'failed', 'refunded') DEFAULT 'pending' NOT NULL,
+      paymentMethod VARCHAR(50) DEFAULT 'razorpay',
+      razorpayOrderId VARCHAR(255),
+      razorpayPaymentId VARCHAR(255),
       notes TEXT,
       createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
       updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,
+      completedAt TIMESTAMP NULL,
       INDEX idx_orders_status (status),
-      INDEX idx_orders_orderNumber (orderNumber)
+      INDEX idx_orders_orderNumber (orderNumber),
+      INDEX idx_orders_paymentStatus (paymentStatus),
+      INDEX idx_orders_razorpayOrderId (razorpayOrderId)
     )
   `);
+
+  // Add missing columns if table already exists (for migrations)
+  try {
+    await connection.execute(`ALTER TABLE orders ADD COLUMN paymentStatus ENUM('pending', 'completed', 'failed', 'refunded') DEFAULT 'pending' NOT NULL AFTER totalAmount`);
+    console.log('  Added paymentStatus column');
+  } catch (e) { /* Column already exists */ }
+  
+  try {
+    await connection.execute(`ALTER TABLE orders ADD COLUMN paymentMethod VARCHAR(50) DEFAULT 'razorpay' AFTER paymentStatus`);
+    console.log('  Added paymentMethod column');
+  } catch (e) { /* Column already exists */ }
+  
+  try {
+    await connection.execute(`ALTER TABLE orders ADD COLUMN razorpayOrderId VARCHAR(255) AFTER paymentMethod`);
+    console.log('  Added razorpayOrderId column');
+  } catch (e) { /* Column already exists */ }
+  
+  try {
+    await connection.execute(`ALTER TABLE orders ADD COLUMN razorpayPaymentId VARCHAR(255) AFTER razorpayOrderId`);
+    console.log('  Added razorpayPaymentId column');
+  } catch (e) { /* Column already exists */ }
+  
+  try {
+    await connection.execute(`ALTER TABLE orders ADD COLUMN completedAt TIMESTAMP NULL AFTER updatedAt`);
+    console.log('  Added completedAt column');
+  } catch (e) { /* Column already exists */ }
 
   // Create orderItems table
   await connection.execute(`
