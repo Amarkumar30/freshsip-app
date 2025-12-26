@@ -6,15 +6,114 @@ const urlObj = new URL(dbUrl);
 
 const connection = await mysql.createConnection({
   host: urlObj.hostname,
+  port: urlObj.port || 3306,
   user: urlObj.username,
   password: urlObj.password,
   database: urlObj.pathname.slice(1),
-  ssl: { rejectUnauthorized: false },
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
 });
+
+async function createTables() {
+  console.log('Creating tables if they do not exist...');
+
+  // Create sizes table
+  await connection.execute(`
+    CREATE TABLE IF NOT EXISTS sizes (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(50) NOT NULL UNIQUE,
+      priceMultiplier DECIMAL(5,2) NOT NULL,
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Create addOns table
+  await connection.execute(`
+    CREATE TABLE IF NOT EXISTS addOns (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      price DECIMAL(10,2) NOT NULL,
+      isAvailable BOOLEAN DEFAULT TRUE NOT NULL,
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Create menuItems table
+  await connection.execute(`
+    CREATE TABLE IF NOT EXISTS menuItems (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      description TEXT,
+      basePrice DECIMAL(10,2) NOT NULL,
+      image TEXT,
+      category VARCHAR(100),
+      isAvailable BOOLEAN DEFAULT TRUE NOT NULL,
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_menuItems_category (category),
+      INDEX idx_menuItems_isAvailable (isAvailable)
+    )
+  `);
+
+  // Create users table
+  await connection.execute(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      openId VARCHAR(64) NOT NULL UNIQUE,
+      name TEXT,
+      email VARCHAR(320),
+      loginMethod VARCHAR(64),
+      role ENUM('user', 'admin') DEFAULT 'user' NOT NULL,
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+      updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,
+      lastSignedIn TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+      INDEX idx_users_openId (openId),
+      INDEX idx_users_role (role)
+    )
+  `);
+
+  // Create orders table
+  await connection.execute(`
+    CREATE TABLE IF NOT EXISTS orders (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      orderNumber VARCHAR(50) NOT NULL UNIQUE,
+      userId INT,
+      customerName VARCHAR(255) NOT NULL,
+      customerPhone VARCHAR(20) NOT NULL,
+      status ENUM('pending', 'confirmed', 'preparing', 'ready', 'completed', 'cancelled') DEFAULT 'pending' NOT NULL,
+      totalAmount DECIMAL(10,2) NOT NULL,
+      notes TEXT,
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+      updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,
+      INDEX idx_orders_status (status),
+      INDEX idx_orders_orderNumber (orderNumber)
+    )
+  `);
+
+  // Create orderItems table
+  await connection.execute(`
+    CREATE TABLE IF NOT EXISTS orderItems (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      orderId INT NOT NULL,
+      menuItemId INT NOT NULL,
+      sizeId INT NOT NULL,
+      quantity INT DEFAULT 1 NOT NULL,
+      unitPrice DECIMAL(10,2) NOT NULL,
+      addOnIds JSON,
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+    )
+  `);
+
+  console.log('✓ Tables created/verified');
+}
 
 async function seed() {
   try {
-    console.log('Seeding database...');
+    console.log('=== FreshSip Database Seeding ===');
+    console.log('Database URL:', dbUrl.replace(/:[^:@]+@/, ':****@'));
+    
+    // Create tables first
+    await createTables();
 
     // Insert sizes
     const sizes = [
@@ -117,12 +216,16 @@ async function seed() {
     console.log('✓ Menu items added');
 
     console.log('\n✅ Database seeding completed successfully!');
-    console.log('You can now browse the menu at http://localhost:3000/menu');
   } catch (error) {
     console.error('❌ Error seeding database:', error?.message || error);
+    console.error('Full error:', error);
+    process.exit(1); // Exit with error code so Railway knows something failed
   } finally {
     await connection.end();
   }
 }
 
-seed();
+seed().catch((err) => {
+  console.error('Fatal seed error:', err);
+  process.exit(1);
+});
