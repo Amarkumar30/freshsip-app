@@ -67,11 +67,6 @@ export default function Checkout() {
       return;
     }
 
-    if (!customerPhone.trim()) {
-      toast.error("Please enter your phone number");
-      return;
-    }
-
     if (cart.length === 0) {
       toast.error("Cart is empty");
       return;
@@ -184,24 +179,28 @@ export default function Checkout() {
             <h2 className="text-lg font-bold text-gray-800 mb-4">Your Details</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Full Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Full Name <span className="text-red-500">*</span>
+                </label>
                 <Input
                   type="text"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="Enter your full name"
+                  placeholder="Enter your name"
                   disabled={isProcessing}
                   className="h-12 text-base rounded-xl border-gray-200 focus:border-orange-400 focus:ring-orange-400"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone Number</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Phone Number <span className="text-gray-400 text-xs font-normal">(optional)</span>
+                </label>
                 <Input
                   type="tel"
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
-                  placeholder="10-digit phone number"
+                  placeholder="For order updates"
                   maxLength={10}
                   disabled={isProcessing}
                   className="h-12 text-base rounded-xl border-gray-200 focus:border-orange-400 focus:ring-orange-400"
@@ -213,18 +212,20 @@ export default function Checkout() {
           {/* Order Items */}
           <Card className="p-4 md:p-6 bg-white border-0 shadow-md">
             <h3 className="text-lg font-bold text-gray-800 mb-4">Order Summary</h3>
-            <div className="space-y-3">
+            <div className="divide-y divide-gray-100">
               {cart.map((item, index) => (
-                <div key={index} className="flex justify-between items-start py-3 border-b border-gray-100 last:border-b-0">
-                  <div className="flex-1">
-                    <p className="font-semibold text-gray-800">{item.menuItemName}</p>
+                <div key={index} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
+                  <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-orange-600 font-bold text-sm">{item.quantity}x</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-800 truncate">{item.menuItemName}</p>
                     <p className="text-sm text-orange-600">{item.sizeName}</p>
                     {item.addOnNames.length > 0 && (
-                      <p className="text-xs text-gray-500 mt-0.5">+{item.addOnNames.join(", ")}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">+ {item.addOnNames.join(", ")}</p>
                     )}
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-500">x{item.quantity}</p>
+                  <div className="text-right flex-shrink-0">
                     <p className="font-bold text-gray-800">
                       ₹{((item.itemPrice + item.addOnsTotal) * item.quantity).toFixed(0)}
                     </p>
@@ -243,19 +244,9 @@ export default function Checkout() {
 
           {/* Order Total - Desktop */}
           <Card className="p-4 md:p-6 bg-white border-0 shadow-md hidden md:block">
-            <div className="space-y-3">
-              <div className="flex justify-between text-gray-600">
-                <span>Subtotal</span>
-                <span>₹{calculateTotal().toFixed(0)}</span>
-              </div>
-              <div className="flex justify-between text-gray-600">
-                <span>Delivery</span>
-                <span className="text-green-600 font-medium">FREE</span>
-              </div>
-              <div className="border-t pt-3 flex justify-between font-bold text-xl">
-                <span>Total</span>
-                <span className="text-orange-600">₹{calculateTotal().toFixed(0)}</span>
-              </div>
+            <div className="flex justify-between items-center font-bold text-xl">
+              <span>Total Amount</span>
+              <span className="text-orange-600">₹{calculateTotal().toFixed(0)}</span>
             </div>
 
             <Button

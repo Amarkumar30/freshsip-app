@@ -297,36 +297,38 @@ export default function Menu() {
             </div>
 
             {/* Add-ons */}
-            <div>
-              <h4 className="font-semibold text-gray-800 mb-2">Add Extras <span className="text-gray-400 font-normal text-xs">(Optional)</span></h4>
-              <div className="space-y-2">
-                {addOns?.map((addOn) => (
-                  <button
-                    key={addOn.id}
-                    onClick={() => {
-                      if (selectedAddOns.includes(addOn.id)) {
-                        setSelectedAddOns(selectedAddOns.filter(id => id !== addOn.id));
-                      } else {
-                        setSelectedAddOns([...selectedAddOns, addOn.id]);
-                      }
-                    }}
-                    className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${
-                      selectedAddOns.includes(addOn.id) ? "bg-orange-50 border-2 border-orange-400" : "bg-gray-50 border-2 border-transparent"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-5 h-5 rounded-md flex items-center justify-center ${
-                        selectedAddOns.includes(addOn.id) ? "bg-orange-500" : "border-2 border-gray-300"
-                      }`}>
-                        {selectedAddOns.includes(addOn.id) && <Check className="w-3 h-3 text-white" />}
+            {addOns && addOns.length > 0 && (
+              <div>
+                <h4 className="font-semibold text-gray-800 mb-2">Add Extras</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  {addOns?.map((addOn) => (
+                    <button
+                      key={addOn.id}
+                      onClick={() => {
+                        if (selectedAddOns.includes(addOn.id)) {
+                          setSelectedAddOns(selectedAddOns.filter(id => id !== addOn.id));
+                        } else {
+                          setSelectedAddOns([...selectedAddOns, addOn.id]);
+                        }
+                      }}
+                      className={`flex items-center justify-between p-3 rounded-xl transition-all ${
+                        selectedAddOns.includes(addOn.id) 
+                          ? "bg-orange-500 text-white shadow-md" 
+                          : "bg-gray-50 text-gray-700 border border-gray-200"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">{addOn.name === 'Ice Cream' ? '🍦' : '🍯'}</span>
+                        <span className="font-medium text-sm">{addOn.name}</span>
                       </div>
-                      <span className="font-medium text-gray-700">{addOn.name}</span>
-                    </div>
-                    <span className="text-orange-600 font-semibold">+₹{addOn.price}</span>
-                  </button>
-                ))}
+                      <span className={`text-sm font-semibold ${selectedAddOns.includes(addOn.id) ? 'text-white' : 'text-orange-600'}`}>
+                        +₹{addOn.price}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Quantity */}
             <div className="flex items-center justify-between bg-gray-50 rounded-xl p-3">
@@ -430,17 +432,9 @@ export default function Menu() {
             {/* Footer */}
             {cart.length > 0 && (
               <div className="p-4 border-t bg-white">
-                <div className="flex justify-between mb-2 text-gray-600">
-                  <span>Subtotal</span>
-                  <span className="font-semibold">₹{calculateTotal().toFixed(0)}</span>
-                </div>
-                <div className="flex justify-between mb-4 text-gray-600">
-                  <span>Delivery</span>
-                  <span className="text-green-600 font-medium">FREE</span>
-                </div>
-                <div className="flex justify-between mb-4 text-lg font-bold">
-                  <span>Total</span>
-                  <span className="text-orange-600">₹{calculateTotal().toFixed(0)}</span>
+                <div className="flex justify-between items-center mb-4">
+                  <span className="text-lg font-bold text-gray-800">Total</span>
+                  <span className="text-2xl font-bold text-orange-600">₹{calculateTotal().toFixed(0)}</span>
                 </div>
                 <Button
                   onClick={handleCheckout}

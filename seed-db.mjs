@@ -79,7 +79,7 @@ async function createTables() {
       orderNumber VARCHAR(50) NOT NULL UNIQUE,
       userId INT,
       customerName VARCHAR(255) NOT NULL,
-      customerPhone VARCHAR(20) NOT NULL,
+      customerPhone VARCHAR(20),
       status ENUM('pending', 'confirmed', 'preparing', 'ready', 'completed', 'cancelled') DEFAULT 'pending' NOT NULL,
       totalAmount DECIMAL(10,2) NOT NULL,
       notes TEXT,
@@ -130,14 +130,14 @@ async function seed() {
     }
     console.log('✓ Sizes added');
 
-    // Insert add-ons
+    // Insert add-ons (only Ice Cream and Honey)
     const addOns = [
       { name: 'Ice Cream', price: 30 },
-      { name: 'Extra Fruit', price: 20 },
       { name: 'Honey', price: 15 },
-      { name: 'Whipped Cream', price: 25 },
-      { name: 'Chia Seeds', price: 20 },
     ];
+    
+    // Clear existing add-ons to keep only Ice Cream and Honey
+    await connection.execute('DELETE FROM addOns');
 
     for (const addOn of addOns) {
       await connection.execute(
