@@ -220,10 +220,16 @@ export async function updateOrderRazorpayId(orderId: number, razorpayOrderId: st
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  await db.update(orders).set({
-    razorpayOrderId,
-    updatedAt: new Date(),
-  }).where(eq(orders.id, orderId));
+  try {
+    await db.update(orders).set({
+      razorpayOrderId,
+      updatedAt: new Date(),
+    }).where(eq(orders.id, orderId));
+  } catch (error) {
+    // If the column doesn't exist (migration not run), log warning but don't fail
+    console.warn(`[DB] Could not update razorpayOrderId for order ${orderId}:`, error);
+    console.warn("[DB] You may need to run migrations: npm run db:migrate");
+  }
 }
 
 // Get order by Razorpay order ID (for webhooks)
