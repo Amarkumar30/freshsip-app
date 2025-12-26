@@ -5,10 +5,10 @@ nixPkgs = ["nodejs_20", "pnpm"]
 cmds = ["pnpm install --frozen-lockfile"]
 
 [phases.build]
-cmds = ["pnpm run build && pnpm drizzle-kit generate && pnpm drizzle-kit migrate"]
+cmds = ["pnpm run build"]
 
 [start]
-cmd = "node seed-db.mjs; node dist/index.js"
+cmd = "pnpm drizzle-kit migrate && node seed-db.mjs && node dist/index.js"
 
 [variables]
 NODE_ENV = "production"
