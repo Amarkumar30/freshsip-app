@@ -135,7 +135,9 @@ async function createTables() {
       id INT AUTO_INCREMENT PRIMARY KEY,
       orderId INT NOT NULL,
       menuItemId INT NOT NULL,
+      menuItemName VARCHAR(255),
       sizeId INT NOT NULL,
+      sizeName VARCHAR(50),
       quantity INT DEFAULT 1 NOT NULL,
       itemPrice DECIMAL(10,2) NOT NULL,
       addOnsData JSON,
@@ -146,6 +148,16 @@ async function createTables() {
   `);
 
   // Add missing columns to orderItems if table already exists
+  try {
+    await connection.execute(`ALTER TABLE orderItems ADD COLUMN menuItemName VARCHAR(255) AFTER menuItemId`);
+    console.log('  Added menuItemName column to orderItems');
+  } catch (e) { /* Column already exists */ }
+  
+  try {
+    await connection.execute(`ALTER TABLE orderItems ADD COLUMN sizeName VARCHAR(50) AFTER sizeId`);
+    console.log('  Added sizeName column to orderItems');
+  } catch (e) { /* Column already exists */ }
+  
   try {
     await connection.execute(`ALTER TABLE orderItems ADD COLUMN itemPrice DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER quantity`);
     console.log('  Added itemPrice column to orderItems');

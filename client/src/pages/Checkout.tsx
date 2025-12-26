@@ -83,7 +83,9 @@ export default function Checkout() {
         totalAmount,
         items: cart.map((item) => ({
           menuItemId: item.menuItemId,
+          menuItemName: item.menuItemName,
           sizeId: item.sizeId,
+          sizeName: item.sizeName,
           quantity: item.quantity,
           itemPrice: item.itemPrice,
           addOnsData: item.addOnIds.map((id, idx) => ({

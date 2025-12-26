@@ -174,7 +174,7 @@ export async function getAllOrdersWithItems() {
 
   const allOrders = await db.select().from(orders).orderBy(desc(orders.createdAt));
   
-  // For each order, get items with menu names
+  // For each order, get items with menu names (prefer stored names, fallback to joined names)
   const ordersWithItems = await Promise.all(
     allOrders.map(async (order) => {
       const items = await db
@@ -187,17 +187,33 @@ export async function getAllOrdersWithItems() {
           addOnsData: orderItems.addOnsData,
           addOnsTotal: orderItems.addOnsTotal,
           specialInstructions: orderItems.specialInstructions,
-          menuItemName: menuItems.name,
-          sizeName: sizes.name,
+          storedMenuItemName: orderItems.menuItemName,
+          storedSizeName: orderItems.sizeName,
+          joinedMenuItemName: menuItems.name,
+          joinedSizeName: sizes.name,
         })
         .from(orderItems)
         .leftJoin(menuItems, eq(orderItems.menuItemId, menuItems.id))
         .leftJoin(sizes, eq(orderItems.sizeId, sizes.id))
         .where(eq(orderItems.orderId, order.id));
 
+      // Map items to use stored names if available, fallback to joined names
+      const mappedItems = items.map(item => ({
+        id: item.id,
+        menuItemId: item.menuItemId,
+        sizeId: item.sizeId,
+        quantity: item.quantity,
+        itemPrice: item.itemPrice,
+        addOnsData: item.addOnsData,
+        addOnsTotal: item.addOnsTotal,
+        specialInstructions: item.specialInstructions,
+        menuItemName: item.storedMenuItemName || item.joinedMenuItemName || `Item #${item.menuItemId}`,
+        sizeName: item.storedSizeName || item.joinedSizeName || `Size #${item.sizeId}`,
+      }));
+
       return {
         ...order,
-        items,
+        items: mappedItems,
       };
     })
   );
@@ -292,7 +308,9 @@ export async function getPaidOrders() {
 export async function addOrderItem(orderItemData: {
   orderId: number;
   menuItemId: number;
+  menuItemName?: string;
   sizeId: number;
+  sizeName?: string;
   quantity: number;
   itemPrice: string;
   addOnsData?: Array<{ id: number; name: string; price: string }>;
@@ -305,7 +323,9 @@ export async function addOrderItem(orderItemData: {
   return db.insert(orderItems).values({
     orderId: orderItemData.orderId,
     menuItemId: orderItemData.menuItemId,
+    menuItemName: orderItemData.menuItemName,
     sizeId: orderItemData.sizeId,
+    sizeName: orderItemData.sizeName,
     quantity: orderItemData.quantity,
     itemPrice: orderItemData.itemPrice,
     addOnsData: orderItemData.addOnsData,

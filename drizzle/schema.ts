@@ -109,7 +109,9 @@ export const orderItems = mysqlTable("orderItems", {
   id: int("id").autoincrement().primaryKey(),
   orderId: int("orderId").notNull(),
   menuItemId: int("menuItemId").notNull(),
+  menuItemName: varchar("menuItemName", { length: 255 }), // Store name directly for display
   sizeId: int("sizeId").notNull(),
+  sizeName: varchar("sizeName", { length: 50 }), // Store size name directly for display
   quantity: int("quantity").default(1).notNull(),
   itemPrice: decimal("itemPrice", { precision: 10, scale: 2 }).notNull(), // Price at time of order
   addOnsData: json("addOnsData").$type<Array<{ id: number; name: string; price: string }>>(), // JSON array of selected add-ons

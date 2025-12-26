@@ -79,7 +79,9 @@ export const appRouter = router({
           items: z.array(
             z.object({
               menuItemId: z.number(),
+              menuItemName: z.string().optional(),
               sizeId: z.number(),
+              sizeName: z.string().optional(),
               quantity: z.number(),
               itemPrice: z.number(),
               addOnsData: z.array(z.any()).optional(),
@@ -131,7 +133,9 @@ export const appRouter = router({
             await db.addOrderItem({
               orderId,
               menuItemId: item.menuItemId,
+              menuItemName: item.menuItemName,
               sizeId: item.sizeId,
+              sizeName: item.sizeName,
               quantity: item.quantity,
               itemPrice: item.itemPrice.toFixed(2),
               addOnsData: item.addOnsData,

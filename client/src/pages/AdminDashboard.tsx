@@ -609,18 +609,26 @@ export default function AdminDashboard() {
                 {/* 🧃 JUICE ORDER - Most Important! */}
                 {order.items && order.items.length > 0 && (
                   <div className="bg-gradient-to-r from-orange-500 to-amber-500 -m-4 mb-3 p-3 rounded-t-lg">
-                    <div className="flex items-center gap-2 text-white">
-                      <Coffee className="w-5 h-5" />
-                      <div className="flex-1">
-                        {order.items.map((item, idx) => (
-                          <div key={idx} className="font-bold text-lg">
-                            {item.quantity}x {item.menuItemName || `Item #${item.menuItemId}`}
-                            <span className="text-orange-100 text-sm font-normal ml-2">
+                    <div className="text-white">
+                      {order.items.map((item, idx) => (
+                        <div key={idx}>
+                          <div className="flex items-center gap-2">
+                            <Coffee className="w-5 h-5 flex-shrink-0" />
+                            <span className="font-bold text-lg">
+                              {item.quantity}x {item.menuItemName || `Item #${item.menuItemId}`}
+                            </span>
+                            <span className="text-orange-100 text-sm font-normal">
                               ({item.sizeName || 'Regular'})
                             </span>
                           </div>
-                        ))}
-                      </div>
+                          {/* Show Add-ons */}
+                          {item.addOnsData && Array.isArray(item.addOnsData) && item.addOnsData.length > 0 && (
+                            <p className="text-orange-100 text-sm ml-7">
+                              + {item.addOnsData.map((addon: any) => addon.name).filter(Boolean).join(', ')}
+                            </p>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
@@ -792,7 +800,18 @@ export default function AdminDashboard() {
                             {item.quantity}
                           </span>
                           <div>
-                            <p className="font-medium text-gray-900">Item #{item.menuItemId}</p>
+                            <p className="font-medium text-gray-900">
+                              {(item as OrderItemWithDetails).menuItemName || `Item #${item.menuItemId}`}
+                              <span className="text-gray-500 text-sm ml-2">
+                                ({(item as OrderItemWithDetails).sizeName || 'Regular'})
+                              </span>
+                            </p>
+                            {/* Add-ons */}
+                            {item.addOnsData && Array.isArray(item.addOnsData) && item.addOnsData.length > 0 && (
+                              <p className="text-xs text-orange-600">
+                                + {item.addOnsData.map((addon: any) => addon.name).filter(Boolean).join(', ')}
+                              </p>
+                            )}
                             {item.specialInstructions && (
                               <p className="text-xs text-gray-500 italic">"{item.specialInstructions}"</p>
                             )}
