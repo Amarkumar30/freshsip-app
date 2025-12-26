@@ -167,6 +167,44 @@ export async function getAllOrders() {
   return db.select().from(orders).orderBy(desc(orders.createdAt));
 }
 
+// Get all orders with their items and menu names for admin display
+export async function getAllOrdersWithItems() {
+  const db = await getDb();
+  if (!db) return [];
+
+  const allOrders = await db.select().from(orders).orderBy(desc(orders.createdAt));
+  
+  // For each order, get items with menu names
+  const ordersWithItems = await Promise.all(
+    allOrders.map(async (order) => {
+      const items = await db
+        .select({
+          id: orderItems.id,
+          menuItemId: orderItems.menuItemId,
+          sizeId: orderItems.sizeId,
+          quantity: orderItems.quantity,
+          itemPrice: orderItems.itemPrice,
+          addOnsData: orderItems.addOnsData,
+          addOnsTotal: orderItems.addOnsTotal,
+          specialInstructions: orderItems.specialInstructions,
+          menuItemName: menuItems.name,
+          sizeName: sizes.name,
+        })
+        .from(orderItems)
+        .leftJoin(menuItems, eq(orderItems.menuItemId, menuItems.id))
+        .leftJoin(sizes, eq(orderItems.sizeId, sizes.id))
+        .where(eq(orderItems.orderId, order.id));
+
+      return {
+        ...order,
+        items,
+      };
+    })
+  );
+
+  return ordersWithItems;
+}
+
 export async function updateOrderStatus(orderId: number, newStatus: string, adminId?: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

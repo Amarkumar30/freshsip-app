@@ -351,8 +351,8 @@ export const appRouter = router({
 
     getAllOrders: simpleAdminProcedure.query(async () => {
       try {
-        // Return all orders to admin panel (paid and unpaid for debugging)
-        return await db.getAllOrders();
+        // Return all orders with items for admin panel
+        return await db.getAllOrdersWithItems();
       } catch (error) {
         console.error("Error fetching orders:", error);
         throw new TRPCError({

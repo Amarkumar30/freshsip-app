@@ -25,6 +25,19 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+interface OrderItemWithDetails {
+  id: number;
+  menuItemId: number;
+  sizeId: number;
+  quantity: number;
+  itemPrice: string;
+  addOnsData?: any;
+  addOnsTotal?: string;
+  specialInstructions?: string;
+  menuItemName?: string;
+  sizeName?: string;
+}
+
 interface Order {
   id: number;
   orderNumber: string;
@@ -35,6 +48,7 @@ interface Order {
   paymentStatus: string;
   createdAt: Date;
   updatedAt: Date;
+  items?: OrderItemWithDetails[];
 }
 
 interface OrderItem {
@@ -592,10 +606,29 @@ export default function AdminDashboard() {
                   setShowOrderDetails(true);
                 }}
               >
+                {/* 🧃 JUICE ORDER - Most Important! */}
+                {order.items && order.items.length > 0 && (
+                  <div className="bg-gradient-to-r from-orange-500 to-amber-500 -m-4 mb-3 p-3 rounded-t-lg">
+                    <div className="flex items-center gap-2 text-white">
+                      <Coffee className="w-5 h-5" />
+                      <div className="flex-1">
+                        {order.items.map((item, idx) => (
+                          <div key={idx} className="font-bold text-lg">
+                            {item.quantity}x {item.menuItemName || `Item #${item.menuItemId}`}
+                            <span className="text-orange-100 text-sm font-normal ml-2">
+                              ({item.sizeName || 'Regular'})
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Header */}
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <p className="font-mono font-bold text-lg text-gray-900">{order.orderNumber}</p>
+                    <p className="font-mono font-bold text-sm text-gray-600">{order.orderNumber}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <Timer className="w-3 h-3 text-gray-400" />
                       <span className="text-xs text-gray-500">{getTimeSince(order.createdAt)}</span>
