@@ -137,11 +137,45 @@ async function createTables() {
       menuItemId INT NOT NULL,
       sizeId INT NOT NULL,
       quantity INT DEFAULT 1 NOT NULL,
-      unitPrice DECIMAL(10,2) NOT NULL,
-      addOnIds JSON,
+      itemPrice DECIMAL(10,2) NOT NULL,
+      addOnsData JSON,
+      addOnsTotal DECIMAL(10,2) DEFAULT 0.00,
+      specialInstructions TEXT,
       createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
     )
   `);
+
+  // Add missing columns to orderItems if table already exists
+  try {
+    await connection.execute(`ALTER TABLE orderItems ADD COLUMN itemPrice DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER quantity`);
+    console.log('  Added itemPrice column to orderItems');
+  } catch (e) { /* Column already exists */ }
+  
+  try {
+    await connection.execute(`ALTER TABLE orderItems ADD COLUMN addOnsData JSON AFTER itemPrice`);
+    console.log('  Added addOnsData column to orderItems');
+  } catch (e) { /* Column already exists */ }
+  
+  try {
+    await connection.execute(`ALTER TABLE orderItems ADD COLUMN addOnsTotal DECIMAL(10,2) DEFAULT 0.00 AFTER addOnsData`);
+    console.log('  Added addOnsTotal column to orderItems');
+  } catch (e) { /* Column already exists */ }
+  
+  try {
+    await connection.execute(`ALTER TABLE orderItems ADD COLUMN specialInstructions TEXT AFTER addOnsTotal`);
+    console.log('  Added specialInstructions column to orderItems');
+  } catch (e) { /* Column already exists */ }
+
+  // Rename old columns if they exist (migration from old schema)
+  try {
+    await connection.execute(`ALTER TABLE orderItems CHANGE COLUMN unitPrice itemPrice DECIMAL(10,2) NOT NULL`);
+    console.log('  Renamed unitPrice to itemPrice');
+  } catch (e) { /* Column doesn't exist or already renamed */ }
+  
+  try {
+    await connection.execute(`ALTER TABLE orderItems CHANGE COLUMN addOnIds addOnsData JSON`);
+    console.log('  Renamed addOnIds to addOnsData');
+  } catch (e) { /* Column doesn't exist or already renamed */ }
 
   console.log('✓ Tables created/verified');
 }
