@@ -171,7 +171,7 @@ async function seed() {
         description: 'Cool and refreshing watermelon juice, perfect for hot days',
         basePrice: 70,
         category: 'Fruit Juices',
-        image: 'https://images.unsplash.com/photo-1582979512210-99b6a53386f9?w=500&h=500&fit=crop',
+        image: 'https://images.unsplash.com/photo-1527661591475-527312dd65f5?w=500&h=500&fit=crop',
       },
       {
         name: 'Pineapple Juice',
@@ -199,7 +199,7 @@ async function seed() {
         description: 'A delightful blend of seasonal fruits bursting with flavors',
         basePrice: 90,
         category: 'Fruit Juices',
-        image: 'https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=500&h=500&fit=crop',
+        image: 'https://images.unsplash.com/photo-1622597467836-f3285f2131b8?w=500&h=500&fit=crop',
       },
       // Shakes
       {
@@ -264,7 +264,7 @@ async function seed() {
         description: 'Mixed berries smoothie with blueberries, raspberries, and strawberries',
         basePrice: 140,
         category: 'Special',
-        image: 'https://images.unsplash.com/photo-1553530979-7ee52a2670c4?w=500&h=500&fit=crop',
+        image: 'https://images.unsplash.com/photo-1553177595-4de2bb0842b9?w=500&h=500&fit=crop',
       },
       // Vegetable Juices
       {
@@ -272,14 +272,14 @@ async function seed() {
         description: 'Fresh carrot juice, sweet and packed with beta-carotene',
         basePrice: 75,
         category: 'Vegetable',
-        image: 'https://images.unsplash.com/photo-1623142171936-5a8247e47b58?w=500&h=500&fit=crop',
+        image: 'https://images.unsplash.com/photo-1603569283847-aa295f0d016a?w=500&h=500&fit=crop',
       },
       {
         name: 'Beetroot Juice',
         description: 'Earthy beetroot juice, great for stamina and blood health',
         basePrice: 80,
         category: 'Vegetable',
-        image: 'https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=500&h=500&fit=crop',
+        image: 'https://images.unsplash.com/photo-1613478881426-daaadcf1ec08?w=500&h=500&fit=crop',
       },
     ];
 

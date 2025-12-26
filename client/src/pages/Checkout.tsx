@@ -159,141 +159,144 @@ export default function Checkout() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-amber-50 pb-32 md:pb-8">
       {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="container mx-auto px-4 py-4 flex items-center gap-4">
+      <header className="bg-white/95 backdrop-blur-md shadow-sm sticky top-0 z-40 border-b border-orange-100">
+        <div className="container mx-auto px-4 py-3 flex items-center gap-3">
           <Link href="/menu">
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="w-4 h-4" />
+            <Button variant="ghost" size="sm" className="p-2">
+              <ArrowLeft className="w-5 h-5 text-gray-600" />
             </Button>
           </Link>
           <div className="flex items-center gap-2">
-            <Droplet className="w-8 h-8 text-orange-500" />
-            <h1 className="text-2xl font-bold text-gray-900">FreshSip</h1>
+            <div className="w-9 h-9 bg-gradient-to-br from-orange-400 to-amber-500 rounded-xl flex items-center justify-center shadow-md">
+              <Droplet className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">Checkout</h1>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Checkout Form */}
-          <div className="lg:col-span-2">
-            <Card className="p-8">
-              <h2 className="text-2xl font-bold mb-6">Checkout</h2>
-
-              {/* Customer Details */}
-              <div className="space-y-6 mb-8">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Full Name</label>
-                  <Input
-                    type="text"
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder="Enter your full name"
-                    disabled={isProcessing}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Phone Number</label>
-                  <Input
-                    type="tel"
-                    value={customerPhone}
-                    onChange={(e) => setCustomerPhone(e.target.value)}
-                    placeholder="Enter your 10-digit phone number"
-                    maxLength={10}
-                    disabled={isProcessing}
-                  />
-                </div>
+      <main className="container mx-auto px-4 py-4">
+        <div className="max-w-2xl mx-auto space-y-4">
+          {/* Customer Details */}
+          <Card className="p-4 md:p-6 bg-white border-0 shadow-md">
+            <h2 className="text-lg font-bold text-gray-800 mb-4">Your Details</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Full Name</label>
+                <Input
+                  type="text"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="Enter your full name"
+                  disabled={isProcessing}
+                  className="h-12 text-base rounded-xl border-gray-200 focus:border-orange-400 focus:ring-orange-400"
+                />
               </div>
 
-              {/* Order Items */}
-              <div className="border-t pt-8">
-                <h3 className="text-lg font-semibold mb-4">Order Summary</h3>
-                <div className="space-y-4">
-                  {cart.map((item, index) => (
-                    <div key={index} className="flex justify-between items-start pb-4 border-b last:border-b-0">
-                      <div>
-                        <p className="font-medium">{item.menuItemName}</p>
-                        <p className="text-sm text-gray-600">{item.sizeName}</p>
-                        {item.addOnNames.length > 0 && (
-                          <p className="text-xs text-gray-500">+{item.addOnNames.join(", ")}</p>
-                        )}
-                        {item.specialInstructions && (
-                          <p className="text-xs text-gray-500 italic">
-                            Note: {item.specialInstructions}
-                          </p>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
-                        <p className="font-semibold">
-                          ₹{((item.itemPrice + item.addOnsTotal) * item.quantity).toFixed(2)}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone Number</label>
+                <Input
+                  type="tel"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  placeholder="10-digit phone number"
+                  maxLength={10}
+                  disabled={isProcessing}
+                  className="h-12 text-base rounded-xl border-gray-200 focus:border-orange-400 focus:ring-orange-400"
+                />
               </div>
+            </div>
+          </Card>
 
-              {/* Payment Info */}
-              <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  💳 <strong>Payment Method:</strong> Razorpay will redirect you to your preferred UPI app
-                </p>
-              </div>
-            </Card>
+          {/* Order Items */}
+          <Card className="p-4 md:p-6 bg-white border-0 shadow-md">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">Order Summary</h3>
+            <div className="space-y-3">
+              {cart.map((item, index) => (
+                <div key={index} className="flex justify-between items-start py-3 border-b border-gray-100 last:border-b-0">
+                  <div className="flex-1">
+                    <p className="font-semibold text-gray-800">{item.menuItemName}</p>
+                    <p className="text-sm text-orange-600">{item.sizeName}</p>
+                    {item.addOnNames.length > 0 && (
+                      <p className="text-xs text-gray-500 mt-0.5">+{item.addOnNames.join(", ")}</p>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-500">x{item.quantity}</p>
+                    <p className="font-bold text-gray-800">
+                      ₹{((item.itemPrice + item.addOnsTotal) * item.quantity).toFixed(0)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* Payment Info */}
+          <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl">
+            <p className="text-sm text-blue-700">
+              💳 Payment via Razorpay (UPI, Cards, Net Banking)
+            </p>
           </div>
 
-          {/* Order Total */}
-          <div className="lg:col-span-1">
-            <Card className="sticky top-20 p-6 bg-white">
-              <h3 className="text-xl font-bold mb-6">Order Total</h3>
-
-              <div className="space-y-3 mb-6">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Subtotal:</span>
-                  <span>₹{calculateTotal().toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Delivery:</span>
-                  <span>Free</span>
-                </div>
-                <div className="border-t pt-3 flex justify-between font-bold text-lg">
-                  <span>Total:</span>
-                  <span className="text-orange-600">₹{calculateTotal().toFixed(2)}</span>
-                </div>
+          {/* Order Total - Desktop */}
+          <Card className="p-4 md:p-6 bg-white border-0 shadow-md hidden md:block">
+            <div className="space-y-3">
+              <div className="flex justify-between text-gray-600">
+                <span>Subtotal</span>
+                <span>₹{calculateTotal().toFixed(0)}</span>
               </div>
+              <div className="flex justify-between text-gray-600">
+                <span>Delivery</span>
+                <span className="text-green-600 font-medium">FREE</span>
+              </div>
+              <div className="border-t pt-3 flex justify-between font-bold text-xl">
+                <span>Total</span>
+                <span className="text-orange-600">₹{calculateTotal().toFixed(0)}</span>
+              </div>
+            </div>
 
-              <Button
-                onClick={handlePayment}
-                disabled={isProcessing || cart.length === 0}
-                className="w-full bg-orange-500 hover:bg-orange-600 h-12 text-base"
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  "Pay with Razorpay"
-                )}
-              </Button>
-
-              <p className="text-xs text-gray-500 text-center mt-4">
-                Secure payment powered by Razorpay
-              </p>
-
-              <Link href="/menu">
-                <Button variant="outline" className="w-full mt-3">
-                  Continue Shopping
-                </Button>
-              </Link>
-            </Card>
-          </div>
+            <Button
+              onClick={handlePayment}
+              disabled={isProcessing || cart.length === 0}
+              className="w-full mt-4 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 h-14 text-lg font-semibold rounded-xl shadow-lg"
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                `Pay ₹${calculateTotal().toFixed(0)}`
+              )}
+            </Button>
+          </Card>
         </div>
       </main>
+
+      {/* Mobile Fixed Footer */}
+      <div className="fixed bottom-0 left-0 right-0 md:hidden bg-white border-t border-gray-100 p-4 shadow-xl">
+        <div className="flex justify-between items-center mb-3">
+          <span className="text-gray-600">Total</span>
+          <span className="text-xl font-bold text-orange-600">₹{calculateTotal().toFixed(0)}</span>
+        </div>
+        <Button
+          onClick={handlePayment}
+          disabled={isProcessing || cart.length === 0}
+          className="w-full bg-gradient-to-r from-orange-500 to-amber-500 h-14 text-lg font-semibold rounded-xl shadow-lg active:scale-[0.98] transition-transform"
+        >
+          {isProcessing ? (
+            <>
+              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              Processing...
+            </>
+          ) : (
+            "Pay Now"
+          )}
+        </Button>
+      </div>
     </div>
   );
 }
