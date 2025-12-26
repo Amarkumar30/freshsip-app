@@ -202,6 +202,12 @@ export default function Home() {
               <Link href="/refund-policy">
                 <span className="text-gray-400 hover:text-orange-400 transition-colors text-sm cursor-pointer">Refund & Cancellation</span>
               </Link>
+              <Link href="/shipping">
+                <span className="text-gray-400 hover:text-orange-400 transition-colors text-sm cursor-pointer">Shipping & Delivery</span>
+              </Link>
+              <Link href="/privacy">
+                <span className="text-gray-400 hover:text-orange-400 transition-colors text-sm cursor-pointer">Privacy Policy</span>
+              </Link>
               <Link href="/terms">
                 <span className="text-gray-400 hover:text-orange-400 transition-colors text-sm cursor-pointer">Terms & Conditions</span>
               </Link>
@@ -221,6 +227,7 @@ export default function Home() {
             <p className="text-gray-500 text-sm">&copy; 2025 FreshSip Juice Bar. Made with ❤️ for the SAU family.</p>
             <div className="flex gap-4 text-gray-500 text-xs">
               <Link href="/terms"><span className="hover:text-gray-400 cursor-pointer">Terms</span></Link>
+              <Link href="/privacy"><span className="hover:text-gray-400 cursor-pointer">Privacy</span></Link>
               <Link href="/refund-policy"><span className="hover:text-gray-400 cursor-pointer">Refund</span></Link>
               <Link href="/contact"><span className="hover:text-gray-400 cursor-pointer">Contact</span></Link>
             </div>
