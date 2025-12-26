@@ -5,10 +5,10 @@ nixPkgs = ["nodejs_20", "pnpm"]
 cmds = ["pnpm install --frozen-lockfile"]
 
 [phases.build]
-cmds = ["pnpm run build", "chmod +x start.sh"]
+cmds = ["pnpm run build"]
 
 [start]
-cmd = "./start.sh"
+cmd = "pnpm start"
 
 [variables]
 NODE_ENV = "production"
