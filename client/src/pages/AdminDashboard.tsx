@@ -85,7 +85,7 @@ export default function AdminDashboard() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showOrderDetails, setShowOrderDetails] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<"queue" | "all" | "completed">("queue");
+  const [activeTab, setActiveTab] = useState<"queue" | "all" | "completed" | "analytics">("queue");
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
@@ -230,6 +230,63 @@ export default function AdminDashboard() {
       return orderDate.toDateString() === today.toDateString();
     }).length,
   };
+
+  // Analytics calculations
+  const getWeeklyStats = () => {
+    const now = new Date();
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const weekOrders = orders.filter((o: Order) => new Date(o.createdAt) >= oneWeekAgo);
+    const weekRevenue = weekOrders.reduce((sum: number, o: Order) => sum + parseFloat(o.totalAmount), 0);
+    
+    // Daily breakdown for the week
+    const dailyData = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+      const dayOrders = orders.filter((o: Order) => {
+        const orderDate = new Date(o.createdAt);
+        return orderDate.toDateString() === date.toDateString();
+      });
+      const dayRevenue = dayOrders.reduce((sum: number, o: Order) => sum + parseFloat(o.totalAmount), 0);
+      dailyData.push({
+        day: date.toLocaleDateString('en-US', { weekday: 'short' }),
+        date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        orders: dayOrders.length,
+        revenue: dayRevenue,
+      });
+    }
+    
+    return { weekOrders: weekOrders.length, weekRevenue, dailyData };
+  };
+
+  const getMonthlyStats = () => {
+    const now = new Date();
+    const oneMonthAgo = new Date(now.getFullYear(), now.getMonth(), 1); // Start of current month
+    const monthOrders = orders.filter((o: Order) => new Date(o.createdAt) >= oneMonthAgo);
+    const monthRevenue = monthOrders.reduce((sum: number, o: Order) => sum + parseFloat(o.totalAmount), 0);
+    
+    // Weekly breakdown for the month
+    const weeklyData = [];
+    for (let i = 0; i < 4; i++) {
+      const weekStart = new Date(oneMonthAgo.getTime() + i * 7 * 24 * 60 * 60 * 1000);
+      const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const weekOrders = orders.filter((o: Order) => {
+        const orderDate = new Date(o.createdAt);
+        return orderDate >= weekStart && orderDate < weekEnd;
+      });
+      const weekRevenue = weekOrders.reduce((sum: number, o: Order) => sum + parseFloat(o.totalAmount), 0);
+      weeklyData.push({
+        week: `Week ${i + 1}`,
+        range: `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
+        orders: weekOrders.length,
+        revenue: weekRevenue,
+      });
+    }
+    
+    return { monthOrders: monthOrders.length, monthRevenue, weeklyData };
+  };
+
+  const weeklyStats = getWeeklyStats();
+  const monthlyStats = getMonthlyStats();
 
   if (!isAuthenticated) {
     return (
@@ -392,8 +449,123 @@ export default function AdminDashboard() {
           >
             ✅ Ready/Done ({stats.ready + stats.completed})
           </button>
+          <button
+            onClick={() => setActiveTab("analytics")}
+            className={`px-4 py-2 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
+              activeTab === "analytics"
+                ? "bg-orange-500 text-white shadow-md"
+                : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
+            }`}
+          >
+            📊 Analytics
+          </button>
         </div>
 
+        {/* Analytics View */}
+        {activeTab === "analytics" ? (
+          <div className="space-y-6">
+            {/* Weekly Stats */}
+            <Card className="p-6 bg-white border-0 shadow-lg">
+              <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                📅 This Week's Performance
+              </h3>
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-4 rounded-xl text-white">
+                  <p className="text-blue-100 text-sm">Weekly Revenue</p>
+                  <p className="text-3xl font-bold mt-1">₹{weeklyStats.weekRevenue.toFixed(0)}</p>
+                </div>
+                <div className="bg-gradient-to-br from-purple-500 to-pink-600 p-4 rounded-xl text-white">
+                  <p className="text-purple-100 text-sm">Weekly Orders</p>
+                  <p className="text-3xl font-bold mt-1">{weeklyStats.weekOrders}</p>
+                </div>
+              </div>
+              
+              {/* Daily Breakdown */}
+              <h4 className="font-semibold text-gray-700 mb-3">Daily Breakdown</h4>
+              <div className="space-y-2">
+                {weeklyStats.dailyData.map((day, idx) => (
+                  <div key={idx} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                    <div className="w-16 text-center">
+                      <p className="font-bold text-gray-900">{day.day}</p>
+                      <p className="text-xs text-gray-500">{day.date}</p>
+                    </div>
+                    <div className="flex-1">
+                      <div className="h-4 bg-gray-200 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-orange-400 to-amber-500 rounded-full transition-all duration-500"
+                          style={{ 
+                            width: `${weeklyStats.weekRevenue > 0 ? (day.revenue / weeklyStats.weekRevenue) * 100 : 0}%`,
+                            minWidth: day.revenue > 0 ? '8px' : '0'
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+                    <div className="text-right min-w-[80px]">
+                      <p className="font-bold text-gray-900">₹{day.revenue.toFixed(0)}</p>
+                      <p className="text-xs text-gray-500">{day.orders} orders</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            {/* Monthly Stats */}
+            <Card className="p-6 bg-white border-0 shadow-lg">
+              <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                📆 This Month's Performance
+              </h3>
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-4 rounded-xl text-white">
+                  <p className="text-emerald-100 text-sm">Monthly Revenue</p>
+                  <p className="text-3xl font-bold mt-1">₹{monthlyStats.monthRevenue.toFixed(0)}</p>
+                </div>
+                <div className="bg-gradient-to-br from-orange-500 to-red-600 p-4 rounded-xl text-white">
+                  <p className="text-orange-100 text-sm">Monthly Orders</p>
+                  <p className="text-3xl font-bold mt-1">{monthlyStats.monthOrders}</p>
+                </div>
+              </div>
+              
+              {/* Weekly Breakdown */}
+              <h4 className="font-semibold text-gray-700 mb-3">Weekly Breakdown</h4>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {monthlyStats.weeklyData.map((week, idx) => (
+                  <div key={idx} className="p-4 bg-gray-50 rounded-xl text-center">
+                    <p className="font-bold text-gray-900">{week.week}</p>
+                    <p className="text-xs text-gray-500 mb-2">{week.range}</p>
+                    <p className="text-xl font-bold text-orange-600">₹{week.revenue.toFixed(0)}</p>
+                    <p className="text-xs text-gray-500">{week.orders} orders</p>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            {/* Quick Stats Summary */}
+            <Card className="p-6 bg-gradient-to-r from-gray-800 to-gray-900 text-white border-0 shadow-lg">
+              <h3 className="text-lg font-bold mb-4">📈 Quick Summary</h3>
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <p className="text-gray-400 text-sm">Avg Order Value</p>
+                  <p className="text-2xl font-bold mt-1">
+                    ₹{stats.total > 0 ? (orders.reduce((sum: number, o: Order) => sum + parseFloat(o.totalAmount), 0) / stats.total).toFixed(0) : 0}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-400 text-sm">Completion Rate</p>
+                  <p className="text-2xl font-bold mt-1">
+                    {stats.total > 0 ? ((stats.completed / stats.total) * 100).toFixed(0) : 0}%
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-400 text-sm">Total Revenue</p>
+                  <p className="text-2xl font-bold mt-1">
+                    ₹{orders.reduce((sum: number, o: Order) => sum + parseFloat(o.totalAmount), 0).toFixed(0)}
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </div>
+        ) : (
+          <>
         {/* Orders Grid */}
         {filteredOrders.length === 0 ? (
           <Card className="p-12 text-center">
@@ -450,10 +622,23 @@ export default function AdminDashboard() {
                     )}
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-orange-600">₹{order.totalAmount}</p>
-                    <p className={`text-xs ${order.paymentStatus === "completed" ? "text-emerald-600" : "text-amber-600"}`}>
-                      {order.paymentStatus === "completed" ? "Paid" : "COD"}
-                    </p>
+                    <p className="font-bold text-orange-600 text-lg">₹{parseFloat(order.totalAmount).toFixed(0)}</p>
+                    {order.paymentStatus === "completed" ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                        <CheckCircle className="w-3 h-3" />
+                        PAID
+                      </span>
+                    ) : order.paymentStatus === "failed" ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-700 bg-red-100 px-2 py-0.5 rounded-full">
+                        <XCircle className="w-3 h-3" />
+                        FAILED
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                        <Clock className="w-3 h-3" />
+                        PENDING
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -514,6 +699,8 @@ export default function AdminDashboard() {
               </Card>
             ))}
           </div>
+        )}
+          </>
         )}
       </main>
 

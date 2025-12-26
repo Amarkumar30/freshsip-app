@@ -203,7 +203,7 @@ export const appRouter = router({
           if (!razorpay) {
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
-              message: "Payment gateway not configured",
+              message: "Payment gateway not configured. Please add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET environment variables.",
             });
           }
 
@@ -214,16 +214,21 @@ export const appRouter = router({
             currency: "INR",
             receipt: `order_${input.orderId}`,
             notes: {
-              orderId: input.orderId,
+              orderId: String(input.orderId),
               customerName: input.customerName,
             },
           });
+
+          // Save the razorpay order ID to our database for webhook matching
+          await db.updateOrderRazorpayId(input.orderId, razorpayOrder.id);
+
+          console.log(`[Payment] Razorpay order created: ${razorpayOrder.id} for order ${input.orderId}`);
 
           return {
             razorpayOrderId: razorpayOrder.id,
             amount: amountInPaisa,
             currency: "INR",
-            keyId: process.env.VITE_RAZORPAY_KEY_ID,
+            keyId: process.env.RAZORPAY_KEY_ID,
           };
         } catch (error) {
           console.error("Error creating Razorpay order:", error);
@@ -234,7 +239,7 @@ export const appRouter = router({
         }
       }),
 
-    // Verify payment
+    // Verify payment (client-side verification - backup to webhook)
     verifyPayment: publicProcedure
       .input(
         z.object({
@@ -263,16 +268,38 @@ export const appRouter = router({
           if (expectedSignature !== input.razorpaySignature) {
             throw new TRPCError({
               code: "BAD_REQUEST",
-              message: "Payment verification failed",
+              message: "Payment verification failed - invalid signature",
             });
           }
 
           // Update order payment status
           await db.updateOrderPaymentStatus(input.orderId, "completed", input.razorpayPaymentId);
+          
+          // Auto-confirm the order after successful payment
+          await db.updateOrderStatusOnly(input.orderId, "confirmed");
+
+          console.log(`[Payment] Payment verified for order ${input.orderId}, payment ID: ${input.razorpayPaymentId}`);
+
+          // Get order details for emitting
+          const order = await db.getOrderById(input.orderId);
+          
+          if (order) {
+            // Emit new order event to admin panel (order is now paid and confirmed)
+            emitNewOrder({
+              id: order.id,
+              orderNumber: order.orderNumber,
+              customerName: order.customerName,
+              totalAmount: order.totalAmount,
+              status: "confirmed",
+              paymentStatus: "completed",
+              createdAt: order.createdAt,
+            });
+          }
 
           // Emit payment update event
           emitOrderUpdate(input.orderId, {
             paymentStatus: "completed",
+            status: "confirmed",
             razorpayPaymentId: input.razorpayPaymentId,
           });
 
@@ -287,6 +314,20 @@ export const appRouter = router({
             message: "Payment verification failed",
           });
         }
+      }),
+
+    // Get payment status for an order
+    getPaymentStatus: publicProcedure
+      .input(z.object({ orderId: z.number() }))
+      .query(async ({ input }) => {
+        const order = await db.getOrderById(input.orderId);
+        if (!order) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Order not found" });
+        }
+        return {
+          paymentStatus: order.paymentStatus,
+          razorpayPaymentId: order.razorpayPaymentId,
+        };
       }),
   }),
 
@@ -310,9 +351,23 @@ export const appRouter = router({
 
     getAllOrders: simpleAdminProcedure.query(async () => {
       try {
-        return await db.getAllOrders();
+        // Only return paid orders to admin panel
+        return await db.getPaidOrders();
       } catch (error) {
         console.error("Error fetching orders:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to fetch orders",
+        });
+      }
+    }),
+
+    // Get all orders including unpaid (for debugging)
+    getAllOrdersIncludingUnpaid: simpleAdminProcedure.query(async () => {
+      try {
+        return await db.getAllOrders();
+      } catch (error) {
+        console.error("Error fetching all orders:", error);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to fetch orders",

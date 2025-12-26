@@ -8,6 +8,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { initializeWebSocket } from "../websocket";
+import { registerRazorpayWebhook } from "../razorpayWebhook";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -40,6 +41,9 @@ async function startServer() {
   app.get("/health", (_req, res) => {
     res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
   });
+  
+  // Register Razorpay webhook (before other routes)
+  registerRazorpayWebhook(app);
   
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);

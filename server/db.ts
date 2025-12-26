@@ -192,11 +192,57 @@ export async function updateOrderPaymentStatus(orderId: number, paymentStatus: s
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  await db.update(orders).set({
+  const updateData: any = {
     paymentStatus: paymentStatus as any,
-    razorpayPaymentId,
+    updatedAt: new Date(),
+  };
+
+  if (razorpayPaymentId) {
+    updateData.razorpayPaymentId = razorpayPaymentId;
+  }
+
+  await db.update(orders).set(updateData).where(eq(orders.id, orderId));
+}
+
+// Update order status without recording history (used by webhook)
+export async function updateOrderStatusOnly(orderId: number, newStatus: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.update(orders).set({
+    status: newStatus as any,
     updatedAt: new Date(),
   }).where(eq(orders.id, orderId));
+}
+
+// Update razorpay order ID on order
+export async function updateOrderRazorpayId(orderId: number, razorpayOrderId: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.update(orders).set({
+    razorpayOrderId,
+    updatedAt: new Date(),
+  }).where(eq(orders.id, orderId));
+}
+
+// Get order by Razorpay order ID (for webhooks)
+export async function getOrderByRazorpayOrderId(razorpayOrderId: string) {
+  const db = await getDb();
+  if (!db) return null;
+
+  const result = await db.select().from(orders).where(eq(orders.razorpayOrderId, razorpayOrderId)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+// Get only paid orders (for admin panel)
+export async function getPaidOrders() {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db.select().from(orders)
+    .where(eq(orders.paymentStatus, "completed"))
+    .orderBy(desc(orders.createdAt));
 }
 
 export async function addOrderItem(orderItemData: {

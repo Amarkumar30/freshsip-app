@@ -106,19 +106,23 @@ export default function Checkout() {
 
       // Step 3: Open Razorpay checkout
       const options = {
-        key: process.env.VITE_RAZORPAY_KEY_ID || "",
+        key: razorpayResponse.keyId, // Get key from server response
         order_id: razorpayResponse.razorpayOrderId,
         amount: razorpayResponse.amount,
         currency: razorpayResponse.currency,
         name: "FreshSip Juice Bar",
         description: `Order #${orderResponse.orderNumber}`,
+        image: "https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=100&h=100&fit=crop",
         prefill: {
           name: customerName,
-          contact: customerPhone,
+          contact: customerPhone || "",
+        },
+        theme: {
+          color: "#f97316", // Orange color to match brand
         },
         handler: async (response: any) => {
           try {
-            // Step 4: Verify payment
+            // Step 4: Verify payment on server
             await verifyPaymentMutation.mutateAsync({
               orderId: orderResponse.orderId,
               razorpayOrderId: razorpayResponse.razorpayOrderId,
@@ -129,18 +133,24 @@ export default function Checkout() {
             // Clear cart
             localStorage.removeItem("cart");
 
-            // Redirect to success page
-            window.location.href = `/order-success?orderNumber=${orderResponse.orderNumber}&orderId=${orderResponse.orderId}`;
+            // Redirect to success page with payment details
+            window.location.href = `/order-success?orderNumber=${orderResponse.orderNumber}&orderId=${orderResponse.orderId}&paymentId=${response.razorpay_payment_id}`;
           } catch (error) {
             console.error("Payment verification failed:", error);
             toast.error("Payment verification failed. Please contact support.");
+            setIsProcessing(false);
           }
         },
         modal: {
           ondismiss: () => {
             setIsProcessing(false);
-            toast.error("Payment cancelled");
+            toast.error("Payment cancelled. Your order has been saved - you can retry payment.");
           },
+          confirm_close: true,
+          escape: false,
+        },
+        notes: {
+          orderNumber: orderResponse.orderNumber,
         },
       };
 
