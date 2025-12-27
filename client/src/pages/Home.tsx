@@ -54,12 +54,12 @@ export default function Home() {
             100% natural, handcrafted juices & shakes 🍊🥭
           </p>
           
-          <Link href="/menu">
+          <a href="/menu">
             <Button size="lg" className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold px-10 py-6 text-lg rounded-2xl shadow-xl shadow-orange-200/50 hover:shadow-2xl transition-all hover:scale-105 active:scale-100">
               <ShoppingCart className="w-5 h-5 mr-2" />
               Order Now
             </Button>
-          </Link>
+          </a>
           
         </div>
 
@@ -126,11 +126,11 @@ export default function Home() {
         <div className="mt-16 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-3xl p-8 text-center">
           <h3 className="text-2xl font-bold mb-2">Thirsty? 🍹</h3>
           <p className="text-orange-100 mb-5">Order now, ready in minutes!</p>
-          <Link href="/menu">
+          <a href="/menu">
             <Button size="lg" className="bg-white text-orange-600 hover:bg-orange-50 font-bold px-8 py-5 rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-100">
               Order Now →
             </Button>
-          </Link>
+          </a>
         </div>
       </main>
 
