@@ -1,4 +1,4 @@
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, asc, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, menuItems, sizes, addOns, orders, orderItems, orderStatusHistory } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -172,7 +172,8 @@ export async function getAllOrdersWithItems() {
   const db = await getDb();
   if (!db) return [];
 
-  const allOrders = await db.select().from(orders).orderBy(desc(orders.createdAt));
+  // Order by createdAt ascending (oldest first) for first-come-first-serve queue
+  const allOrders = await db.select().from(orders).orderBy(asc(orders.createdAt));
   
   // For each order, get items with menu names (prefer stored names, fallback to joined names)
   const ordersWithItems = await Promise.all(
