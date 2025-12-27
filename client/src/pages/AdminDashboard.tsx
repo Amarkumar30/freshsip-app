@@ -222,6 +222,13 @@ export default function AdminDashboard() {
       return ["ready", "completed"].includes(order.status);
     }
     return true;
+  }).sort((a: Order, b: Order) => {
+    // For Ready/Done tab: show recently updated orders first (newest on top)
+    if (activeTab === "completed") {
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    }
+    // For Queue and All: keep oldest first (first-come-first-serve)
+    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
   });
 
   // Stats
@@ -311,39 +318,26 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+      <header className="bg-white border-b sticky top-0 z-40">
         <div className="container mx-auto px-4 py-3">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-amber-500 rounded-xl flex items-center justify-center shadow-md">
-                <Droplet className="w-6 h-6 text-white" />
+              <div className="w-9 h-9 bg-orange-500 rounded-lg flex items-center justify-center">
+                <Droplet className="w-5 h-5 text-white" />
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">FreshSip Admin</h1>
-                <p className="text-xs text-gray-500">Shop Management</p>
-              </div>
+              <h1 className="text-lg font-bold text-gray-900">FreshSip</h1>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               {/* Live indicator */}
-              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full">
+              <div className="flex items-center gap-1.5 px-2 py-1 bg-green-50 rounded-full">
                 <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                 </span>
-                <span className="text-xs font-medium text-emerald-700">Live</span>
-              </div>
-
-              {/* Time */}
-              <div className="hidden md:block text-right">
-                <p className="text-sm font-medium text-gray-900">
-                  {currentTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                </p>
-                <p className="text-xs text-gray-500">
-                  {currentTime.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })}
-                </p>
+                <span className="text-xs font-medium text-green-700">Live</span>
               </div>
 
               <Button
@@ -353,8 +347,8 @@ export default function AdminDashboard() {
                 }}
                 disabled={isRefreshing}
                 size="sm"
-                variant="outline"
-                className="hidden sm:flex"
+                variant="ghost"
+                className="p-2"
               >
                 <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} />
               </Button>
@@ -363,115 +357,77 @@ export default function AdminDashboard() {
                 onClick={handleLogout}
                 variant="ghost"
                 size="sm"
-                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                className="text-gray-500 hover:text-red-600 p-2"
               >
-                <LogOut className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Logout</span>
+                <LogOut className="w-4 h-4" />
               </Button>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <Card className="p-4 bg-gradient-to-br from-orange-500 to-amber-500 text-white border-0 shadow-lg">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-orange-100 text-sm font-medium">Today's Revenue</p>
-                <p className="text-2xl sm:text-3xl font-bold mt-1">₹{stats.todayRevenue.toFixed(0)}</p>
-              </div>
-              <div className="p-2 bg-white/20 rounded-lg">
-                <TrendingUp className="w-5 h-5" />
-              </div>
-            </div>
-            <p className="text-orange-100 text-xs mt-2">{stats.todayOrders} orders today</p>
-          </Card>
-
-          <Card className="p-4 bg-white border-slate-200 shadow-sm">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-gray-500 text-sm font-medium">In Queue</p>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">
-                  {stats.pending + stats.confirmed}
-                </p>
-              </div>
-              <div className="p-2 bg-amber-100 rounded-lg">
-                <ChefHat className="w-5 h-5 text-amber-600" />
-              </div>
-            </div>
-            <p className="text-gray-400 text-xs mt-2">{stats.pending} pending, {stats.confirmed} preparing</p>
-          </Card>
-
-          <Card className="p-4 bg-white border-slate-200 shadow-sm">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-gray-500 text-sm font-medium">Ready</p>
-                <p className="text-2xl sm:text-3xl font-bold text-emerald-600 mt-1">{stats.ready}</p>
-              </div>
-              <div className="p-2 bg-emerald-100 rounded-lg">
-                <Bell className="w-5 h-5 text-emerald-600" />
-              </div>
-            </div>
-            <p className="text-gray-400 text-xs mt-2">Waiting for pickup</p>
-          </Card>
-
-          <Card className="p-4 bg-white border-slate-200 shadow-sm">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-gray-500 text-sm font-medium">Total Orders</p>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">{stats.total}</p>
-              </div>
-              <div className="p-2 bg-slate-100 rounded-lg">
-                <ShoppingBag className="w-5 h-5 text-slate-600" />
-              </div>
-            </div>
-            <p className="text-gray-400 text-xs mt-2">{stats.completed} completed</p>
-          </Card>
+      <main className="container mx-auto px-4 py-4">
+        {/* Stats Row */}
+        <div className="grid grid-cols-4 gap-3 mb-4">
+          <div className="bg-orange-500 rounded-xl p-3 text-white">
+            <p className="text-orange-100 text-xs">Today</p>
+            <p className="text-xl font-bold">₹{stats.todayRevenue.toFixed(0)}</p>
+          </div>
+          <div className="bg-white rounded-xl p-3 border">
+            <p className="text-gray-400 text-xs">Queue</p>
+            <p className="text-xl font-bold text-gray-900">{stats.pending + stats.confirmed}</p>
+          </div>
+          <div className="bg-white rounded-xl p-3 border">
+            <p className="text-gray-400 text-xs">Ready</p>
+            <p className="text-xl font-bold text-green-600">{stats.ready}</p>
+          </div>
+          <div className="bg-white rounded-xl p-3 border">
+            <p className="text-gray-400 text-xs">Done</p>
+            <p className="text-xl font-bold text-gray-500">{stats.completed}</p>
+          </div>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex gap-2 mb-4 overflow-x-auto no-scrollbar pb-2">
+        <div className="flex gap-1 mb-4 bg-gray-100 p-1 rounded-lg">
           <button
             onClick={() => setActiveTab("queue")}
-            className={`px-4 py-2 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
+            className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-all ${
               activeTab === "queue"
-                ? "bg-orange-500 text-white shadow-md"
-                : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-500"
             }`}
           >
-            🔥 Queue ({stats.pending + stats.confirmed})
-          </button>
-          <button
-            onClick={() => setActiveTab("all")}
-            className={`px-4 py-2 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
-              activeTab === "all"
-                ? "bg-orange-500 text-white shadow-md"
-                : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
-            }`}
-          >
-            📋 All Orders ({stats.total})
+            Queue {stats.pending + stats.confirmed > 0 && <span className="ml-1 bg-orange-500 text-white text-xs px-1.5 py-0.5 rounded-full">{stats.pending + stats.confirmed}</span>}
           </button>
           <button
             onClick={() => setActiveTab("completed")}
-            className={`px-4 py-2 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
+            className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-all ${
               activeTab === "completed"
-                ? "bg-orange-500 text-white shadow-md"
-                : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-500"
             }`}
           >
-            ✅ Ready/Done ({stats.ready + stats.completed})
+            Done
+          </button>
+          <button
+            onClick={() => setActiveTab("all")}
+            className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-all ${
+              activeTab === "all"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-500"
+            }`}
+          >
+            All
           </button>
           <button
             onClick={() => setActiveTab("analytics")}
-            className={`px-4 py-2 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
+            className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-all ${
               activeTab === "analytics"
-                ? "bg-orange-500 text-white shadow-md"
-                : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-500"
             }`}
           >
-            📊 Analytics
+            📊
           </button>
         </div>
 
@@ -582,109 +538,59 @@ export default function AdminDashboard() {
           <>
         {/* Orders Grid */}
         {filteredOrders.length === 0 ? (
-          <Card className="p-12 text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Coffee className="w-8 h-8 text-gray-400" />
-            </div>
-            <p className="text-gray-600 font-medium">No orders in this category</p>
-            <p className="text-gray-400 text-sm mt-1">New orders will appear here automatically</p>
-          </Card>
+          <div className="text-center py-16">
+            <Coffee className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500">No orders here</p>
+          </div>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="space-y-3">
             {filteredOrders.map((order: Order) => (
-              <Card
+              <div
                 key={order.id}
-                className={`p-4 border-2 transition-all hover:shadow-lg cursor-pointer ${
+                className={`bg-white rounded-xl p-4 border-l-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow ${
                   order.status === "pending"
-                    ? "border-amber-300 bg-amber-50/50"
+                    ? "border-l-amber-400"
+                    : order.status === "confirmed"
+                    ? "border-l-blue-400"
                     : order.status === "ready"
-                    ? "border-emerald-300 bg-emerald-50/50 animate-pulse"
-                    : "border-slate-200 bg-white"
+                    ? "border-l-green-400"
+                    : "border-l-gray-300"
                 }`}
                 onClick={() => {
                   setSelectedOrder(order as Order);
                   setShowOrderDetails(true);
                 }}
               >
-                {/* 🧃 JUICE ORDER - Most Important! */}
-                {order.items && order.items.length > 0 && (
-                  <div className="bg-gradient-to-r from-orange-500 to-amber-500 -m-4 mb-3 p-3 rounded-t-lg">
-                    <div className="text-white">
-                      {order.items.map((item, idx) => (
-                        <div key={idx}>
-                          <div className="flex items-center gap-2">
-                            <Coffee className="w-5 h-5 flex-shrink-0" />
-                            <span className="font-bold text-lg">
-                              {item.quantity}x {item.menuItemName || `Item #${item.menuItemId}`}
-                            </span>
-                            <span className="text-orange-100 text-sm font-normal">
-                              ({item.sizeName || 'Regular'})
-                            </span>
-                          </div>
-                          {/* Show Add-ons */}
-                          {item.addOnsData && Array.isArray(item.addOnsData) && item.addOnsData.length > 0 && (
-                            <p className="text-orange-100 text-sm ml-7">
-                              + {item.addOnsData.map((addon: any) => addon.name).filter(Boolean).join(', ')}
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Header */}
-                <div className="flex items-start justify-between mb-3">
+                {/* Order Header */}
+                <div className="flex items-start justify-between mb-2">
                   <div>
-                    <p className="font-mono font-bold text-sm text-gray-600">{order.orderNumber}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Timer className="w-3 h-3 text-gray-400" />
-                      <span className="text-xs text-gray-500">{getTimeSince(order.createdAt)}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-gray-900">
+                        {order.items && order.items.length > 0 
+                          ? order.items.map((item, idx) => (
+                              <span key={idx}>
+                                {item.quantity}x {item.menuItemName || `Item`}
+                                {idx < order.items!.length - 1 ? ', ' : ''}
+                              </span>
+                            ))
+                          : `Order #${order.id}`
+                        }
+                      </span>
                     </div>
-                  </div>
-                  <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold ${getStatusColor(order.status)}`}>
-                    {getStatusIcon(order.status)}
-                    <span className="capitalize">{order.status}</span>
-                  </div>
-                </div>
-
-                {/* Customer Info */}
-                <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-100 mb-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-amber-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                    {order.customerName.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-900 truncate">{order.customerName}</p>
-                    {order.customerPhone && (
-                      <p className="text-xs text-gray-500 flex items-center gap-1">
-                        <Phone className="w-3 h-3" />
-                        {order.customerPhone}
-                      </p>
-                    )}
+                    <p className="text-sm text-gray-500 mt-0.5">
+                      {order.customerName} • {getTimeSince(order.createdAt)}
+                    </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-orange-600 text-lg">₹{parseFloat(order.totalAmount).toFixed(0)}</p>
-                    {order.paymentStatus === "completed" ? (
-                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
-                        <CheckCircle className="w-3 h-3" />
-                        PAID
-                      </span>
-                    ) : order.paymentStatus === "failed" ? (
-                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-700 bg-red-100 px-2 py-0.5 rounded-full">
-                        <XCircle className="w-3 h-3" />
-                        FAILED
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
-                        <Clock className="w-3 h-3" />
-                        PENDING
-                      </span>
-                    )}
+                    <p className="font-bold text-orange-600">₹{parseFloat(order.totalAmount).toFixed(0)}</p>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(order.status)}`}>
+                      {order.status}
+                    </span>
                   </div>
                 </div>
 
-                {/* Quick Actions */}
-                <div className="flex gap-2">
+                {/* Action Buttons */}
+                <div className="flex gap-2 mt-3">
                   {order.status === "pending" && (
                     <Button
                       onClick={(e: React.MouseEvent) => {
@@ -692,10 +598,9 @@ export default function AdminDashboard() {
                         handleUpdateStatus(order.id, "confirmed");
                       }}
                       size="sm"
-                      className="flex-1 bg-blue-500 hover:bg-blue-600 text-white"
+                      className="flex-1 bg-blue-500 hover:bg-blue-600 text-white h-9"
                     >
-                      <PlayCircle className="w-4 h-4 mr-1" />
-                      Start
+                      Start Making
                     </Button>
                   )}
                   {order.status === "confirmed" && (
@@ -705,10 +610,9 @@ export default function AdminDashboard() {
                         handleUpdateStatus(order.id, "ready");
                       }}
                       size="sm"
-                      className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white"
+                      className="flex-1 bg-green-500 hover:bg-green-600 text-white h-9"
                     >
-                      <CheckCircle className="w-4 h-4 mr-1" />
-                      Mark Ready
+                      ✓ Mark Ready
                     </Button>
                   )}
                   {order.status === "ready" && (
@@ -718,26 +622,13 @@ export default function AdminDashboard() {
                         handleUpdateStatus(order.id, "completed");
                       }}
                       size="sm"
-                      className="flex-1 bg-gray-600 hover:bg-gray-700 text-white"
+                      className="flex-1 bg-gray-700 hover:bg-gray-800 text-white h-9"
                     >
-                      <Package className="w-4 h-4 mr-1" />
                       Complete
                     </Button>
                   )}
-                  <Button
-                    onClick={(e: React.MouseEvent) => {
-                      e.stopPropagation();
-                      setSelectedOrder(order as Order);
-                      setShowOrderDetails(true);
-                    }}
-                    size="sm"
-                    variant="outline"
-                    className="px-3"
-                  >
-                    <ArrowRight className="w-4 h-4" />
-                  </Button>
                 </div>
-              </Card>
+              </div>
             ))}
           </div>
         )}
