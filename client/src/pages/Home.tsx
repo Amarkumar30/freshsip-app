@@ -33,9 +33,9 @@ export default function Home() {
       {/* Hero Section */}
       <main className="container mx-auto px-4 py-12">
         <div className="text-center mb-20 relative">
-          {/* Decorative elements */}
-          <div className="absolute top-0 left-1/4 w-20 h-20 bg-orange-200 rounded-full blur-3xl opacity-50"></div>
-          <div className="absolute bottom-0 right-1/4 w-32 h-32 bg-amber-200 rounded-full blur-3xl opacity-50"></div>
+          {/* Decorative elements - pointer-events-none so they don't block clicks */}
+          <div className="absolute top-0 left-1/4 w-20 h-20 bg-orange-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+          <div className="absolute bottom-0 right-1/4 w-32 h-32 bg-amber-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
           
           <div className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-100 to-amber-100 px-4 py-2 rounded-full mb-6">
             <Sparkles className="w-4 h-4 text-orange-500" />
@@ -54,7 +54,7 @@ export default function Home() {
             100% natural, handcrafted juices & shakes 🍊🥭
           </p>
           
-          <a href="/menu">
+          <a href="/menu" className="relative z-10 inline-block">
             <Button size="lg" className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold px-10 py-6 text-lg rounded-2xl shadow-xl shadow-orange-200/50 hover:shadow-2xl transition-all hover:scale-105 active:scale-100">
               <ShoppingCart className="w-5 h-5 mr-2" />
               Order Now
