@@ -119,6 +119,15 @@ export default function Checkout() {
           name: customerName,
           contact: customerPhone || "",
         },
+        // Make contact field optional - user can skip it
+        config: {
+          display: {
+            hide: [{ method: "contact" }],
+            preferences: {
+              show_default_blocks: true,
+            },
+          },
+        },
         theme: {
           color: "#f97316", // Orange color to match brand
         },
