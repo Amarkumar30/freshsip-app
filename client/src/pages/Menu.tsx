@@ -153,31 +153,30 @@ export default function Menu() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-4">
+      <main className="container mx-auto px-4 py-3">
         {/* Hero */}
-        <div className="text-center mb-5">
-          <h2 className="text-2xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-orange-600 via-amber-500 to-orange-600 bg-clip-text text-transparent">
-            Fresh & Delicious
+        <div className="text-center mb-4">
+          <h2 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-orange-600 to-amber-500 bg-clip-text text-transparent">
+            Our Menu 🍊
           </h2>
-          <p className="text-gray-500 text-sm">Handcrafted juices & shakes 🍊🥭🍓</p>
         </div>
 
         {/* Category Filter */}
-        <div className="flex justify-center mb-6">
-          <div className="inline-flex flex-wrap justify-center gap-2 bg-gray-100/80 p-2 rounded-2xl">
+        <div className="overflow-x-auto pb-2 mb-4 -mx-4 px-4">
+          <div className="inline-flex gap-2 min-w-full justify-start md:justify-center">
             {categories.map((category) => {
               const IconComponent = categoryIcons[category as string] || Droplet;
               return (
                 <button
                   key={category}
                   onClick={() => setActiveCategory(category as string)}
-                  className={`px-4 py-2.5 rounded-xl font-medium transition-all flex items-center gap-2 whitespace-nowrap text-sm ${
+                  className={`px-3 py-2 rounded-full font-medium transition-all flex items-center gap-1.5 whitespace-nowrap text-sm ${
                     activeCategory === category
-                      ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg'
-                      : 'bg-white text-gray-600 hover:bg-gray-50 shadow-sm'
+                      ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md'
+                      : 'bg-white text-gray-600 border border-gray-200 hover:border-orange-300'
                   }`}
                 >
-                  <IconComponent className="w-4 h-4" />
+                  <IconComponent className="w-3.5 h-3.5" />
                   {category}
                 </button>
               );
@@ -190,19 +189,19 @@ export default function Menu() {
           {filteredItems?.map((item) => (
             <Card
               key={item.id}
-              className="overflow-hidden active:scale-[0.98] transition-transform cursor-pointer border-0 bg-white shadow-md"
+              className="overflow-hidden active:scale-[0.97] transition-all cursor-pointer border-0 bg-white shadow-sm hover:shadow-lg"
               onClick={() => {
                 setSelectedItem(item);
                 setSelectedSize(sizes?.[0]?.id || null);
                 setShowDialog(true);
               }}
             >
-              <div className="aspect-square bg-orange-50 overflow-hidden relative">
+              <div className="aspect-[4/3] bg-gradient-to-br from-orange-50 to-amber-50 overflow-hidden relative">
                 {item.image ? (
                   <img
                     src={item.image}
                     alt={item.name}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                     loading="lazy"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=500&h=500&fit=crop';
@@ -210,18 +209,15 @@ export default function Menu() {
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <Droplet className="w-12 h-12 text-orange-300" />
+                    <Droplet className="w-10 h-10 text-orange-300" />
                   </div>
                 )}
-                <div className={`absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-semibold text-white bg-gradient-to-r ${categoryColors[item.category || ''] || 'from-gray-400 to-gray-500'}`}>
-                  {item.category}
-                </div>
               </div>
               <div className="p-3">
                 <h3 className="font-semibold text-sm text-gray-800 truncate">{item.name}</h3>
-                <div className="flex justify-between items-center mt-1">
-                  <span className="text-lg font-bold text-orange-600">₹{item.basePrice}</span>
-                  <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full flex items-center justify-center shadow">
+                <div className="flex justify-between items-center mt-2">
+                  <span className="text-base font-bold text-orange-600">₹{item.basePrice}</span>
+                  <div className="w-7 h-7 bg-orange-500 rounded-lg flex items-center justify-center">
                     <Plus className="w-4 h-4 text-white" />
                   </div>
                 </div>

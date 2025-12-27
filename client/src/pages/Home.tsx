@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { Droplet, ShoppingCart, LogIn, Sparkles, Zap, Heart, Leaf, Star } from "lucide-react";
+import { Droplet, ShoppingCart, LogIn, Sparkles, Zap } from "lucide-react";
 
 export default function Home() {
   return (
@@ -31,7 +31,7 @@ export default function Home() {
       </header>
 
       {/* Hero Section */}
-      <main className="container mx-auto px-4 py-20">
+      <main className="container mx-auto px-4 py-12">
         <div className="text-center mb-20 relative">
           {/* Decorative elements */}
           <div className="absolute top-0 left-1/4 w-20 h-20 bg-orange-200 rounded-full blur-3xl opacity-50"></div>
@@ -42,52 +42,29 @@ export default function Home() {
             <span className="text-sm font-medium text-orange-700">100% Fresh & Natural</span>
           </div>
           
-          <h2 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
+          <h2 className="text-4xl md:text-6xl font-bold mb-4 leading-tight">
             <span className="bg-gradient-to-r from-orange-600 via-amber-500 to-orange-600 bg-clip-text text-transparent">
               Fresh Juices
             </span>
             <br />
-            <span className="text-gray-800">Fresh Energy</span>
+            <span className="text-gray-800">Delivered Fast</span>
           </h2>
           
-          <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
-            Discover our handcrafted juices and shakes made with the freshest ingredients. 
-            From classic orange juice to creamy badam shake — taste the difference! 🍊🥭🍓
+          <p className="text-lg text-gray-500 mb-8 max-w-lg mx-auto">
+            100% natural, handcrafted juices & shakes 🍊🥭
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link href="/menu">
-              <Button size="lg" className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold px-8 py-6 text-lg rounded-xl shadow-lg shadow-orange-200 hover:shadow-xl transition-all hover:scale-105">
-                <ShoppingCart className="w-5 h-5 mr-2" />
-                Order Now
-              </Button>
-            </Link>
-            <Link href="/menu">
-              <Button size="lg" variant="outline" className="border-2 border-orange-300 text-orange-600 hover:bg-orange-50 px-8 py-6 text-lg rounded-xl">
-                View Menu
-              </Button>
-            </Link>
-          </div>
+          <Link href="/menu">
+            <Button size="lg" className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold px-10 py-6 text-lg rounded-2xl shadow-xl shadow-orange-200/50 hover:shadow-2xl transition-all hover:scale-105 active:scale-100">
+              <ShoppingCart className="w-5 h-5 mr-2" />
+              Order Now
+            </Button>
+          </Link>
           
-          {/* Trust badges */}
-          <div className="flex justify-center gap-8 mt-12 text-gray-500">
-            <div className="flex items-center gap-2">
-              <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
-              <span className="text-sm font-medium">4.9 Rating</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Heart className="w-5 h-5 text-red-400 fill-red-400" />
-              <span className="text-sm font-medium">10K+ Happy Customers</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Leaf className="w-5 h-5 text-green-500" />
-              <span className="text-sm font-medium">100% Natural</span>
-            </div>
-          </div>
         </div>
 
         {/* Features */}
-        <div className="grid md:grid-cols-3 gap-8 mt-16">
+        <div className="grid md:grid-cols-3 gap-6 mt-12">
           <div className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-xl shadow-orange-100/50 text-center border border-orange-100 hover:shadow-2xl transition-shadow group">
             <div className="w-16 h-16 bg-gradient-to-br from-orange-400 to-amber-400 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
               <span className="text-3xl">🍊</span>
@@ -120,10 +97,9 @@ export default function Home() {
         </div>
 
         {/* Popular Items Preview */}
-        <div className="mt-24">
-          <div className="text-center mb-12">
-            <h3 className="text-3xl font-bold text-gray-800 mb-4">Popular Picks</h3>
-            <p className="text-gray-600">Our customers' favorite drinks</p>
+        <div className="mt-16">
+          <div className="text-center mb-8">
+            <h3 className="text-2xl font-bold text-gray-800">Popular Picks ✨</h3>
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -147,19 +123,14 @@ export default function Home() {
         </div>
 
         {/* CTA Section */}
-        <div className="mt-24 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-500 text-white rounded-3xl p-12 text-center relative overflow-hidden">
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSI0Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-30"></div>
-          <div className="relative">
-            <h3 className="text-4xl font-bold mb-4">Ready for a Fresh Juice? 🍹</h3>
-            <p className="text-xl mb-8 opacity-90 max-w-2xl mx-auto">
-              Browse our menu and customize your perfect juice today. Free delivery on orders above ₹200!
-            </p>
-            <Link href="/menu">
-              <Button size="lg" className="bg-white text-orange-600 hover:bg-orange-50 font-bold px-10 py-6 text-lg rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-105">
-                Start Ordering →
-              </Button>
-            </Link>
-          </div>
+        <div className="mt-16 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-3xl p-8 text-center">
+          <h3 className="text-2xl font-bold mb-2">Thirsty? 🍹</h3>
+          <p className="text-orange-100 mb-5">Order now, ready in minutes!</p>
+          <Link href="/menu">
+            <Button size="lg" className="bg-white text-orange-600 hover:bg-orange-50 font-bold px-8 py-5 rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-100">
+              Order Now →
+            </Button>
+          </Link>
         </div>
       </main>
 
