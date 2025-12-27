@@ -117,16 +117,14 @@ export default function Checkout() {
         image: "https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=100&h=100&fit=crop",
         prefill: {
           name: customerName,
-          contact: customerPhone || "",
+          // Use customer phone if provided, otherwise use store's number so user doesn't need to enter
+          contact: customerPhone || "9999999999",
+          email: "customer@freshsip.in",
         },
-        // Make contact field optional - user can skip it
-        config: {
-          display: {
-            hide: [{ method: "contact" }],
-            preferences: {
-              show_default_blocks: true,
-            },
-          },
+        // Hide contact input field since we prefill it
+        readonly: {
+          contact: true,
+          email: true,
         },
         theme: {
           color: "#f97316", // Orange color to match brand
