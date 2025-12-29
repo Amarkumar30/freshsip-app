@@ -390,6 +390,14 @@ async function seed() {
         category: 'Vegetable',
         image: 'https://images.unsplash.com/photo-1613478881426-daaadcf1ec08?w=500&h=500&fit=crop',
       },
+      // Extras
+      {
+        name: 'Straw',
+        description: 'Eco-friendly paper straw for your drink',
+        basePrice: 2,
+        category: 'Extras',
+        image: 'https://images.unsplash.com/photo-1572424121992-2ddb48b1d099?w=500&h=500&fit=crop',
+      },
     ];
 
     for (const item of menuItems) {
