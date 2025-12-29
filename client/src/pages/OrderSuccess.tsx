@@ -1,228 +1,234 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { CheckCircle, Droplet, Clock, CreditCard, ArrowRight, Sparkles } from "lucide-react";
-
-interface OrderDetails {
-  order: {
-    id: number;
-    orderNumber: string;
-    customerName: string;
-    customerPhone?: string;
-    totalAmount: string;
-    status: string;
-    paymentStatus: string;
-    createdAt: Date;
-  };
-  items: Array<{
-    id: number;
-    menuItemId: number;
-    sizeId: number;
-    quantity: number;
-    itemPrice: string;
-    addOnsData?: any[];
-    addOnsTotal?: string;
-    specialInstructions?: string;
-  }>;
-}
+import { CheckCircle, Droplet, Clock, ChefHat, Package, Home } from "lucide-react";
 
 export default function OrderSuccess() {
   const [orderNumber, setOrderNumber] = useState("");
-  const [orderId, setOrderId] = useState("");
   const [paymentId, setPaymentId] = useState("");
 
   useEffect(() => {
-    // Get order details from URL params
     const params = new URLSearchParams(window.location.search);
     setOrderNumber(params.get("orderNumber") || "");
-    setOrderId(params.get("orderId") || "");
     setPaymentId(params.get("paymentId") || "");
-
-    // Clear cart
     localStorage.removeItem("cart");
   }, []);
 
-  // Fetch order details
+  // Fetch order details with auto-refresh every 5 seconds
   const { data: orderData } = trpc.orders.getByNumber.useQuery(
     { orderNumber },
-    { enabled: !!orderNumber }
+    { enabled: !!orderNumber, refetchInterval: 5000 }
   );
 
+  const status = orderData?.order?.status || "pending";
+
+  const getStatusStep = (s: string) => {
+    const steps = ["pending", "confirmed", "ready", "completed"];
+    return steps.indexOf(s);
+  };
+
+  const currentStep = getStatusStep(status);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white/95 backdrop-blur-md shadow-sm sticky top-0 z-40 border-b border-green-100">
-        <div className="container mx-auto px-4 py-3 flex items-center gap-2">
-          <div className="w-9 h-9 bg-gradient-to-br from-orange-400 to-amber-500 rounded-xl flex items-center justify-center shadow-md">
-            <Droplet className="w-5 h-5 text-white" />
-          </div>
-          <h1 className="text-xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">FreshSip</h1>
+      <header className="bg-white border-b sticky top-0 z-40">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+          <Link href="/">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
+                <Droplet className="w-5 h-5 text-white" />
+              </div>
+              <span className="font-bold text-gray-900">FreshSip</span>
+            </div>
+          </Link>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto">
-          {/* Success Animation */}
-          <div className="text-center mb-8">
-            <div className="inline-block relative">
-              <div className="absolute inset-0 bg-green-400 rounded-full blur-xl opacity-30 animate-pulse"></div>
-              <div className="relative w-28 h-28 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center shadow-xl mx-auto">
-                <CheckCircle className="w-16 h-16 text-white" />
+      <main className="container mx-auto px-4 py-6 max-w-md">
+        {/* Success Icon */}
+        <div className="text-center mb-6">
+          <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto shadow-lg">
+            <CheckCircle className="w-10 h-10 text-white" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mt-4">Order Placed!</h1>
+          <p className="text-gray-500 mt-1">Payment successful</p>
+        </div>
+
+        {/* Order Number Card */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm mb-4">
+          <div className="text-center">
+            <p className="text-sm text-gray-500 mb-1">Order Number</p>
+            <p className="text-3xl font-bold text-orange-600 font-mono">
+              #{orderNumber.split('-').pop()}
+            </p>
+            <p className="text-xs text-gray-400 mt-1 font-mono">{orderNumber}</p>
+          </div>
+
+          {orderData?.order && (
+            <div className="mt-4 pt-4 border-t flex justify-between items-center">
+              <span className="text-gray-600">Total Paid</span>
+              <span className="text-xl font-bold text-gray-900">
+                ₹{parseFloat(orderData.order.totalAmount).toFixed(0)}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Live Order Status */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm mb-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-bold text-gray-900">Order Status</h2>
+            <div className="flex items-center gap-1.5 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+              </span>
+              Live
+            </div>
+          </div>
+
+          {/* Status Steps */}
+          <div className="space-y-4">
+            {/* Step 1: Pending */}
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                currentStep >= 0 ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-400'
+              }`}>
+                <Clock className="w-5 h-5" />
               </div>
-              <div className="absolute -top-2 -right-2">
-                <Sparkles className="w-8 h-8 text-yellow-400 animate-bounce" />
+              <div className="flex-1">
+                <p className={`font-medium ${currentStep >= 0 ? 'text-gray-900' : 'text-gray-400'}`}>
+                  Order Received
+                </p>
+                <p className="text-sm text-gray-500">
+                  {currentStep === 0 ? 'Waiting for confirmation...' : 'Done'}
+                </p>
+              </div>
+              {currentStep === 0 && (
+                <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
+              )}
+            </div>
+
+            {/* Connector */}
+            <div className="ml-5 w-0.5 h-4 bg-gray-200"></div>
+
+            {/* Step 2: Confirmed/Preparing */}
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                currentStep >= 1 ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-400'
+              }`}>
+                <ChefHat className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <p className={`font-medium ${currentStep >= 1 ? 'text-gray-900' : 'text-gray-400'}`}>
+                  Preparing
+                </p>
+                <p className="text-sm text-gray-500">
+                  {currentStep === 1 ? 'Making your fresh juice...' : currentStep > 1 ? 'Done' : 'Waiting'}
+                </p>
+              </div>
+              {currentStep === 1 && (
+                <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
+              )}
+            </div>
+
+            {/* Connector */}
+            <div className="ml-5 w-0.5 h-4 bg-gray-200"></div>
+
+            {/* Step 3: Ready */}
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                currentStep >= 2 ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-400'
+              }`}>
+                <CheckCircle className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <p className={`font-medium ${currentStep >= 2 ? 'text-gray-900' : 'text-gray-400'}`}>
+                  Ready for Pickup
+                </p>
+                <p className="text-sm text-gray-500">
+                  {currentStep === 2 ? '🎉 Come pick up your order!' : currentStep > 2 ? 'Done' : 'Waiting'}
+                </p>
+              </div>
+              {currentStep === 2 && (
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              )}
+            </div>
+
+            {/* Connector */}
+            <div className="ml-5 w-0.5 h-4 bg-gray-200"></div>
+
+            {/* Step 4: Completed */}
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                currentStep >= 3 ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-400'
+              }`}>
+                <Package className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <p className={`font-medium ${currentStep >= 3 ? 'text-gray-900' : 'text-gray-400'}`}>
+                  Completed
+                </p>
+                <p className="text-sm text-gray-500">
+                  {currentStep === 3 ? 'Thank you! Enjoy your drink 🍹' : 'Waiting'}
+                </p>
               </div>
             </div>
           </div>
 
-          {/* Success Message */}
-          <Card className="p-8 md:p-12 text-center bg-white border-0 shadow-xl rounded-3xl overflow-hidden relative">
-            {/* Decorative background */}
-            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400"></div>
-            
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-              Payment Successful! 🎉
-            </h2>
-            <p className="text-gray-600 mb-8 text-lg">
-              Your order has been confirmed and is being prepared.
-            </p>
-
-            {/* Order Number - Main highlight */}
-            <div className="bg-gradient-to-r from-green-50 via-emerald-50 to-teal-50 p-8 rounded-2xl mb-8 border border-green-100">
-              <p className="text-sm text-gray-600 mb-2 uppercase tracking-wide font-medium">Your Order Number</p>
-              <p className="text-4xl md:text-5xl font-bold text-emerald-600 font-mono tracking-wider">
-                {orderNumber.split('-').pop()}
-              </p>
-              <p className="text-xs text-gray-500 mt-2 font-mono">{orderNumber}</p>
+          {/* Ready Alert */}
+          {status === "ready" && (
+            <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-xl text-center">
+              <p className="text-lg font-bold text-green-700">🎉 Your order is ready!</p>
+              <p className="text-sm text-green-600 mt-1">Please pick it up at the counter</p>
             </div>
+          )}
+        </div>
 
-            {/* Payment & Order Info Grid */}
-            <div className="grid md:grid-cols-2 gap-4 mb-8">
-              {/* Payment Status */}
-              <div className="bg-green-50 p-5 rounded-xl text-left border border-green-100">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
-                    <CreditCard className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-900">Payment Status</p>
-                    <p className="text-green-600 font-medium">✓ Paid Successfully</p>
-                  </div>
-                </div>
-                {paymentId && (
-                  <p className="text-xs text-gray-500 mt-2 font-mono truncate">
-                    ID: {paymentId}
-                  </p>
-                )}
-              </div>
-
-              {/* Estimated Time */}
-              <div className="bg-amber-50 p-5 rounded-xl text-left border border-amber-100">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
-                    <Clock className="w-5 h-5 text-amber-600" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-900">Estimated Time</p>
-                    <p className="text-amber-600 font-medium">10-15 minutes</p>
-                  </div>
-                </div>
-              </div>
+        {/* Customer Info */}
+        {orderData?.order && (
+          <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Customer</span>
+              <span className="font-medium text-gray-900">{orderData.order.customerName}</span>
             </div>
-
-            {/* Order Amount */}
-            {orderData?.order && (
-              <div className="bg-gray-50 p-5 rounded-xl mb-8 border border-gray-100">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Order Amount</span>
-                  <span className="text-2xl font-bold text-gray-900">
-                    ₹{parseFloat(orderData.order.totalAmount).toFixed(0)}
-                  </span>
-                </div>
-                {orderData.order.customerName && (
-                  <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-200">
-                    <span className="text-gray-500 text-sm">Customer</span>
-                    <span className="text-gray-700">{orderData.order.customerName}</span>
-                  </div>
-                )}
+            {orderData.order.customerPhone && (
+              <div className="flex justify-between text-sm mt-2">
+                <span className="text-gray-500">Phone</span>
+                <span className="text-gray-900">{orderData.order.customerPhone}</span>
               </div>
             )}
-
-            {/* What's Next - Timeline */}
-            <div className="bg-blue-50 border border-blue-100 p-6 rounded-xl mb-8 text-left">
-              <h3 className="font-bold text-blue-900 mb-4 flex items-center gap-2">
-                <span className="text-xl">📋</span> What's Next?
-              </h3>
-              <div className="space-y-4">
-                <div className="flex gap-4">
-                  <div className="flex flex-col items-center">
-                    <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold text-sm">✓</div>
-                    <div className="w-0.5 h-full bg-gray-200 mt-1"></div>
-                  </div>
-                  <div className="pb-4">
-                    <p className="font-medium text-gray-900">Order Confirmed</p>
-                    <p className="text-sm text-gray-600">Payment received successfully</p>
-                  </div>
-                </div>
-                <div className="flex gap-4">
-                  <div className="flex flex-col items-center">
-                    <div className="w-8 h-8 bg-amber-400 rounded-full flex items-center justify-center animate-pulse">
-                      <span className="text-white text-lg">🍹</span>
-                    </div>
-                    <div className="w-0.5 h-full bg-gray-200 mt-1"></div>
-                  </div>
-                  <div className="pb-4">
-                    <p className="font-medium text-gray-900">Being Prepared</p>
-                    <p className="text-sm text-gray-600">Our team is making your fresh juice</p>
-                  </div>
-                </div>
-                <div className="flex gap-4">
-                  <div className="flex flex-col items-center">
-                    <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-500">3</div>
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-500">Ready for Pickup</p>
-                    <p className="text-sm text-gray-400">You'll be notified when it's ready</p>
-                  </div>
-                </div>
-              </div>
+            <div className="flex justify-between text-sm mt-2">
+              <span className="text-gray-500">Order Time</span>
+              <span className="text-gray-900">
+                {new Date(orderData.order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
             </div>
-
-            {/* Action Buttons */}
-            <div className="space-y-3">
-              <Link href={`/order-tracking?orderNumber=${orderNumber}`}>
-                <Button className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 h-14 text-lg font-semibold rounded-xl shadow-lg">
-                  Track Your Order
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-              </Link>
-
-              <Link href="/menu">
-                <Button variant="outline" className="w-full h-12 rounded-xl border-2">
-                  Order More Juices
-                </Button>
-              </Link>
-
-              <Link href="/">
-                <Button variant="ghost" className="w-full h-12 text-gray-500">
-                  Back to Home
-                </Button>
-              </Link>
-            </div>
-          </Card>
-
-          {/* Support Info */}
-          <div className="text-center mt-8 p-4 bg-white/50 rounded-xl">
-            <p className="text-gray-600 text-sm">
-              Need help? Contact us at{" "}
-              <a href="mailto:support@qikcart.in" className="text-orange-600 hover:underline font-medium">
-                support@qikcart.in
-              </a>
-            </p>
           </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="space-y-3 mt-6">
+          <Link href="/menu">
+            <Button className="w-full bg-orange-500 hover:bg-orange-600 h-12 text-base font-medium rounded-xl">
+              Order More
+            </Button>
+          </Link>
+
+          <Link href="/">
+            <Button variant="outline" className="w-full h-12 rounded-xl">
+              <Home className="w-4 h-4 mr-2" />
+              Back to Home
+            </Button>
+          </Link>
         </div>
+
+        {/* Support */}
+        <p className="text-center text-sm text-gray-400 mt-6">
+          Need help? <a href="mailto:support@qikcart.in" className="text-orange-500">support@qikcart.in</a>
+        </p>
       </main>
     </div>
   );
