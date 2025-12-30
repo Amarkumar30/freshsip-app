@@ -269,6 +269,7 @@ export async function updateOrderPaymentStatus(orderId: number, paymentStatus: s
   }
 
   await db.update(orders).set(updateData).where(eq(orders.id, orderId));
+  console.log(`[DB] Updated payment status for order ${orderId}: ${paymentStatus}`);
 }
 
 // Update order status without recording history (used by webhook)
@@ -287,16 +288,12 @@ export async function updateOrderRazorpayId(orderId: number, razorpayOrderId: st
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  try {
-    await db.update(orders).set({
-      razorpayOrderId,
-      updatedAt: new Date(),
-    }).where(eq(orders.id, orderId));
-  } catch (error) {
-    // If the column doesn't exist (migration not run), log warning but don't fail
-    console.warn(`[DB] Could not update razorpayOrderId for order ${orderId}:`, error);
-    console.warn("[DB] You may need to run migrations: npm run db:migrate");
-  }
+  await db.update(orders).set({
+    razorpayOrderId,
+    updatedAt: new Date(),
+  }).where(eq(orders.id, orderId));
+  
+  console.log(`[DB] Updated razorpayOrderId for order ${orderId}: ${razorpayOrderId}`);
 }
 
 // Get order by Razorpay order ID (for webhooks)

@@ -215,7 +215,10 @@ export default function AdminDashboard() {
   const orderItems = orderDetailsData?.items || [];
 
   // Filter orders based on active tab
-  const filteredOrders = orders.filter((order: Order) => {
+  // Only show orders that have been paid (paymentStatus === "completed")
+  const paidOrders = orders.filter((o: Order) => o.paymentStatus === "completed");
+  
+  const filteredOrders = paidOrders.filter((order: Order) => {
     if (activeTab === "queue") {
       return ["pending", "confirmed"].includes(order.status);
     } else if (activeTab === "completed") {
@@ -231,13 +234,13 @@ export default function AdminDashboard() {
     return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
   });
 
-  // Stats
+  // Stats - based on paid orders only
   const stats = {
-    total: orders.length,
-    pending: orders.filter((o: Order) => o.status === "pending").length,
-    confirmed: orders.filter((o: Order) => o.status === "confirmed").length,
-    ready: orders.filter((o: Order) => o.status === "ready").length,
-    completed: orders.filter((o: Order) => o.status === "completed").length,
+    total: paidOrders.length,
+    pending: paidOrders.filter((o: Order) => o.status === "pending").length,
+    confirmed: paidOrders.filter((o: Order) => o.status === "confirmed").length,
+    ready: paidOrders.filter((o: Order) => o.status === "ready").length,
+    completed: paidOrders.filter((o: Order) => o.status === "completed").length,
     todayRevenue: orders
       .filter((o: Order) => {
         const orderDate = new Date(o.createdAt);
