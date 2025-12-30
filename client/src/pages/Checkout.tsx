@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -173,33 +172,33 @@ export default function Checkout() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-amber-50 pb-32 md:pb-8">
+    <div className="min-h-screen bg-gray-50 pb-32 md:pb-8">
       {/* Header */}
-      <header className="bg-white/95 backdrop-blur-md shadow-sm sticky top-0 z-40 border-b border-orange-100">
+      <header className="bg-white/95 backdrop-blur-xl sticky top-0 z-40 border-b border-gray-100">
         <div className="container mx-auto px-4 py-3 flex items-center gap-3">
           <Link href="/menu">
-            <Button variant="ghost" size="sm" className="p-2">
+            <Button variant="ghost" size="sm" className="p-2 hover:bg-gray-100 rounded-full">
               <ArrowLeft className="w-5 h-5 text-gray-600" />
             </Button>
           </Link>
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 bg-gradient-to-br from-orange-400 to-amber-500 rounded-xl flex items-center justify-center shadow-md">
-              <Droplet className="w-5 h-5 text-white" />
+            <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
+              <Droplet className="w-4 h-4 text-white" />
             </div>
-            <h1 className="text-xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">Checkout</h1>
+            <span className="text-lg font-bold text-gray-900">Checkout</span>
           </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-4">
-        <div className="max-w-2xl mx-auto space-y-4">
+        <div className="max-w-lg mx-auto space-y-4">
           {/* Customer Details */}
-          <Card className="p-4 md:p-6 bg-white border-0 shadow-md">
-            <h2 className="text-lg font-bold text-gray-800 mb-4">Your Details</h2>
+          <div className="bg-white rounded-2xl p-5 shadow-sm">
+            <h2 className="text-base font-bold text-gray-900 mb-4">Your Details</h2>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Full Name <span className="text-red-500">*</span>
+                  Name <span className="text-red-500">*</span>
                 </label>
                 <Input
                   type="text"
@@ -213,7 +212,7 @@ export default function Checkout() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Phone Number <span className="text-gray-400 text-xs font-normal">(optional)</span>
+                  Phone <span className="text-gray-400 text-xs font-normal">(optional)</span>
                 </label>
                 <Input
                   type="tel"
@@ -226,11 +225,11 @@ export default function Checkout() {
                 />
               </div>
             </div>
-          </Card>
+          </div>
 
           {/* Order Items */}
-          <Card className="p-4 md:p-6 bg-white border-0 shadow-md">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Order Summary</h3>
+          <div className="bg-white rounded-2xl p-5 shadow-sm">
+            <h3 className="text-base font-bold text-gray-900 mb-4">Order Summary</h3>
             <div className="divide-y divide-gray-100">
               {cart.map((item, index) => (
                 <div key={index} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
@@ -238,40 +237,40 @@ export default function Checkout() {
                     <span className="text-orange-600 font-bold text-sm">{item.quantity}x</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-800 truncate">{item.menuItemName}</p>
+                    <p className="font-semibold text-gray-900 truncate">{item.menuItemName}</p>
                     <p className="text-sm text-orange-600">{item.sizeName}</p>
                     {item.addOnNames.length > 0 && (
                       <p className="text-xs text-gray-500 mt-0.5">+ {item.addOnNames.join(", ")}</p>
                     )}
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="font-bold text-gray-800">
+                    <p className="font-bold text-gray-900">
                       ₹{((item.itemPrice + item.addOnsTotal) * item.quantity).toFixed(0)}
                     </p>
                   </div>
                 </div>
               ))}
             </div>
-          </Card>
+          </div>
 
           {/* Payment Info */}
-          <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl">
-            <p className="text-sm text-blue-700">
-              💳 Payment via Razorpay (UPI, Cards, Net Banking)
+          <div className="p-4 bg-orange-50 border border-orange-100 rounded-xl">
+            <p className="text-sm text-orange-700 font-medium">
+              💳 Pay via UPI, Cards, or Net Banking
             </p>
           </div>
 
           {/* Order Total - Desktop */}
-          <Card className="p-4 md:p-6 bg-white border-0 shadow-md hidden md:block">
-            <div className="flex justify-between items-center font-bold text-xl">
-              <span>Total Amount</span>
-              <span className="text-orange-600">₹{calculateTotal().toFixed(0)}</span>
+          <div className="bg-white rounded-2xl p-5 shadow-sm hidden md:block">
+            <div className="flex justify-between items-center font-bold text-lg">
+              <span className="text-gray-600">Total</span>
+              <span className="text-gray-900">₹{calculateTotal().toFixed(0)}</span>
             </div>
 
             <Button
               onClick={handlePayment}
               disabled={isProcessing || cart.length === 0}
-              className="w-full mt-4 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 h-14 text-lg font-semibold rounded-xl shadow-lg"
+              className="w-full mt-4 bg-orange-500 hover:bg-orange-600 h-14 text-base font-semibold rounded-xl"
             >
               {isProcessing ? (
                 <>
@@ -282,20 +281,20 @@ export default function Checkout() {
                 `Pay ₹${calculateTotal().toFixed(0)}`
               )}
             </Button>
-          </Card>
+          </div>
         </div>
       </main>
 
       {/* Mobile Fixed Footer */}
-      <div className="fixed bottom-0 left-0 right-0 md:hidden bg-white border-t border-gray-100 p-4 shadow-xl">
+      <div className="fixed bottom-0 left-0 right-0 md:hidden bg-white border-t border-gray-100 p-4">
         <div className="flex justify-between items-center mb-3">
           <span className="text-gray-600">Total</span>
-          <span className="text-xl font-bold text-orange-600">₹{calculateTotal().toFixed(0)}</span>
+          <span className="text-xl font-bold text-gray-900">₹{calculateTotal().toFixed(0)}</span>
         </div>
         <Button
           onClick={handlePayment}
           disabled={isProcessing || cart.length === 0}
-          className="w-full bg-gradient-to-r from-orange-500 to-amber-500 h-14 text-lg font-semibold rounded-xl shadow-lg active:scale-[0.98] transition-transform"
+          className="w-full bg-orange-500 hover:bg-orange-600 h-14 text-base font-semibold rounded-xl"
         >
           {isProcessing ? (
             <>

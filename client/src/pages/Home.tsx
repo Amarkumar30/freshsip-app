@@ -1,121 +1,100 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { Droplet, ShoppingCart, LogIn, Sparkles, Zap } from "lucide-react";
+import { Droplet, ShoppingCart, Sparkles, Zap, ArrowRight } from "lucide-react";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-amber-50">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50 border-b border-orange-100">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-2 group">
-            <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-amber-500 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-orange-200 transition-shadow">
-              <Droplet className="w-6 h-6 text-white" />
+      <header className="bg-white/90 backdrop-blur-xl sticky top-0 z-50 border-b border-gray-100">
+        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 bg-orange-500 rounded-xl flex items-center justify-center">
+              <Droplet className="w-5 h-5 text-white" />
             </div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">FreshSip</h1>
+            <span className="text-xl font-bold text-gray-900">FreshSip</span>
           </div>
-          <nav className="flex gap-4">
-            <Link href="/menu">
-              <Button variant="ghost" size="sm" className="text-gray-600 hover:text-orange-600">
-                Menu
-              </Button>
-            </Link>
-            <Link href="/admin/login">
-              <Button variant="outline" size="sm" className="border-orange-200 hover:bg-orange-50">
-                <LogIn className="w-4 h-4 mr-2" />
-                Admin
-              </Button>
-            </Link>
-          </nav>
+          <Link href="/menu">
+            <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white rounded-full px-5 h-9 font-medium">
+              Order Now
+            </Button>
+          </Link>
         </div>
       </header>
 
       {/* Hero Section */}
-      <main className="container mx-auto px-4 py-12">
-        <div className="text-center mb-20 relative">
-          {/* Decorative elements - pointer-events-none so they don't block clicks */}
-          <div className="absolute top-0 left-1/4 w-20 h-20 bg-orange-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
-          <div className="absolute bottom-0 right-1/4 w-32 h-32 bg-amber-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
-          
-          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-100 to-amber-100 px-4 py-2 rounded-full mb-6">
-            <Sparkles className="w-4 h-4 text-orange-500" />
-            <span className="text-sm font-medium text-orange-700">100% Fresh & Natural</span>
+      <main className="container mx-auto px-4">
+        <div className="text-center py-16 md:py-24">
+          <div className="inline-flex items-center gap-2 bg-orange-50 text-orange-600 px-4 py-2 rounded-full mb-6 text-sm font-medium">
+            <Sparkles className="w-4 h-4" />
+            100% Fresh & Natural
           </div>
           
-          <h2 className="text-4xl md:text-6xl font-bold mb-4 leading-tight">
-            <span className="bg-gradient-to-r from-orange-600 via-amber-500 to-orange-600 bg-clip-text text-transparent">
-              Fresh Juices
-            </span>
+          <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-4 tracking-tight">
+            Fresh Juices,
             <br />
-            <span className="text-gray-800">Delivered Fast</span>
-          </h2>
+            <span className="text-orange-500">Made for You</span>
+          </h1>
           
-          <p className="text-lg text-gray-500 mb-8 max-w-lg mx-auto">
-            100% natural, handcrafted juices & shakes 🍊🥭
+          <p className="text-lg text-gray-500 mb-8 max-w-md mx-auto leading-relaxed">
+            Handcrafted juices & shakes made fresh daily at SAU campus
           </p>
           
-          <a href="/menu" className="relative z-10 inline-block">
-            <Button size="lg" className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold px-10 py-6 text-lg rounded-2xl shadow-xl shadow-orange-200/50 hover:shadow-2xl transition-all hover:scale-105 active:scale-100">
-              <ShoppingCart className="w-5 h-5 mr-2" />
-              Order Now
-            </Button>
-          </a>
-          
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link href="/menu">
+              <Button size="lg" className="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-8 h-14 text-base rounded-full shadow-lg shadow-orange-200/50 transition-all hover:shadow-xl">
+                <ShoppingCart className="w-5 h-5 mr-2" />
+                Order Now
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Features */}
-        <div className="grid md:grid-cols-3 gap-6 mt-12">
-          <div className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-xl shadow-orange-100/50 text-center border border-orange-100 hover:shadow-2xl transition-shadow group">
-            <div className="w-16 h-16 bg-gradient-to-br from-orange-400 to-amber-400 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
-              <span className="text-3xl">🍊</span>
+        <div className="grid grid-cols-3 gap-4 md:gap-8 py-8 border-y border-gray-100">
+          <div className="text-center">
+            <div className="w-12 h-12 md:w-14 md:h-14 bg-orange-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+              <span className="text-2xl">🍊</span>
             </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-3">100% Fresh</h3>
-            <p className="text-gray-600">
-              Made from the finest, freshest fruits sourced directly from local farms
-            </p>
+            <h3 className="font-semibold text-gray-900 text-sm md:text-base">100% Fresh</h3>
+            <p className="text-gray-500 text-xs md:text-sm mt-1 hidden md:block">No preservatives</p>
           </div>
 
-          <div className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-xl shadow-orange-100/50 text-center border border-orange-100 hover:shadow-2xl transition-shadow group">
-            <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-400 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
-              <Zap className="w-8 h-8 text-white" />
+          <div className="text-center">
+            <div className="w-12 h-12 md:w-14 md:h-14 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+              <Zap className="w-6 h-6 text-amber-600" />
             </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-3">Ready in Minutes</h3>
-            <p className="text-gray-600">
-              Quick preparation and delivery — your fresh juice is ready before you know it
-            </p>
+            <h3 className="font-semibold text-gray-900 text-sm md:text-base">5 Min Ready</h3>
+            <p className="text-gray-500 text-xs md:text-sm mt-1 hidden md:block">Quick preparation</p>
           </div>
 
-          <div className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-xl shadow-orange-100/50 text-center border border-orange-100 hover:shadow-2xl transition-shadow group">
-            <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
-              <span className="text-3xl">💰</span>
+          <div className="text-center">
+            <div className="w-12 h-12 md:w-14 md:h-14 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+              <span className="text-2xl">💰</span>
             </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-3">Great Value</h3>
-            <p className="text-gray-600">
-              Premium quality at affordable prices that won't break the bank
-            </p>
+            <h3 className="font-semibold text-gray-900 text-sm md:text-base">Best Price</h3>
+            <p className="text-gray-500 text-xs md:text-sm mt-1 hidden md:block">Student friendly</p>
           </div>
         </div>
 
         {/* Popular Items Preview */}
-        <div className="mt-16">
-          <div className="text-center mb-8">
-            <h3 className="text-2xl font-bold text-gray-800">Popular Picks ✨</h3>
-          </div>
+        <div className="py-12">
+          <h3 className="text-xl font-bold text-gray-900 mb-6">Popular Picks</h3>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
-              { name: 'Mango Shake', price: '₹120', emoji: '🥭', color: 'from-yellow-400 to-orange-400' },
-              { name: 'Oreo Shake', price: '₹140', emoji: '🍪', color: 'from-gray-600 to-gray-800' },
-              { name: 'Strawberry', price: '₹120', emoji: '🍓', color: 'from-pink-400 to-red-400' },
-              { name: 'Traffic Jam', price: '₹150', emoji: '🌈', color: 'from-purple-400 to-pink-400' },
+              { name: 'Mango Shake', price: '₹120', emoji: '🥭', bg: 'bg-amber-50' },
+              { name: 'Oreo Shake', price: '₹140', emoji: '🍪', bg: 'bg-gray-100' },
+              { name: 'Strawberry', price: '₹120', emoji: '🍓', bg: 'bg-pink-50' },
+              { name: 'Traffic Jam', price: '₹150', emoji: '🌈', bg: 'bg-purple-50' },
             ].map((item) => (
               <Link key={item.name} href="/menu">
-                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 text-center border border-gray-100 hover:shadow-xl hover:scale-105 transition-all cursor-pointer group">
-                  <div className={`w-20 h-20 bg-gradient-to-br ${item.color} rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:rotate-6 transition-transform`}>
-                    <span className="text-4xl">{item.emoji}</span>
+                <div className="bg-white rounded-2xl p-4 border border-gray-100 hover:border-orange-200 hover:shadow-md transition-all cursor-pointer">
+                  <div className={`w-14 h-14 ${item.bg} rounded-xl flex items-center justify-center mb-3`}>
+                    <span className="text-3xl">{item.emoji}</span>
                   </div>
-                  <h4 className="font-bold text-gray-800 mb-1">{item.name}</h4>
-                  <p className="text-orange-600 font-semibold">{item.price}</p>
+                  <h4 className="font-semibold text-gray-900 text-sm">{item.name}</h4>
+                  <p className="text-orange-600 font-bold text-sm mt-1">{item.price}</p>
                 </div>
               </Link>
             ))}
@@ -123,31 +102,32 @@ export default function Home() {
         </div>
 
         {/* CTA Section */}
-        <div className="mt-16 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-3xl p-8 text-center">
-          <h3 className="text-2xl font-bold mb-2">Thirsty? 🍹</h3>
-          <p className="text-orange-100 mb-5">Order now, ready in minutes!</p>
-          <a href="/menu">
-            <Button size="lg" className="bg-white text-orange-600 hover:bg-orange-50 font-bold px-8 py-5 rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-100">
-              Order Now →
+        <div className="bg-orange-500 rounded-2xl p-6 md:p-8 text-center mb-8">
+          <h3 className="text-xl md:text-2xl font-bold text-white mb-2">Ready to order?</h3>
+          <p className="text-orange-100 mb-5 text-sm md:text-base">Fresh juice in just 5 minutes</p>
+          <Link href="/menu">
+            <Button size="lg" className="bg-white text-orange-600 hover:bg-orange-50 font-semibold px-6 h-12 rounded-full">
+              View Menu
+              <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
-          </a>
+          </Link>
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white mt-24">
-        <div className="container mx-auto px-4 py-12">
+      <footer className="bg-gray-900 text-white">
+        <div className="container mx-auto px-4 py-10">
           {/* Main Footer Content */}
           <div className="flex flex-col md:flex-row justify-between items-start gap-8 mb-8">
             {/* Brand */}
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2">
-                <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-amber-500 rounded-xl flex items-center justify-center">
-                  <Droplet className="w-6 h-6 text-white" />
+                <div className="w-9 h-9 bg-orange-500 rounded-xl flex items-center justify-center">
+                  <Droplet className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-xl font-bold">FreshSip</span>
+                <span className="text-lg font-bold">FreshSip</span>
               </div>
-              <p className="text-gray-400 text-sm max-w-xs">Fresh, natural juices for the SAU family. Made with love, served with a smile.</p>
+              <p className="text-gray-400 text-sm max-w-xs">Fresh juices for the SAU family.</p>
             </div>
 
             {/* Quick Links */}
