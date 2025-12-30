@@ -1,23 +1,35 @@
+import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+
+// Critical pages - loaded immediately
 import Home from "./pages/Home";
 import Menu from "./pages/Menu";
-import Checkout from "./pages/Checkout";
-import OrderSuccess from "./pages/OrderSuccess";
-import OrderTracking from "./pages/OrderTracking";
-import AdminLogin from "./pages/AdminLogin";
-import AdminDashboard from "./pages/AdminDashboard";
-import AboutUs from "./pages/AboutUs";
-import ContactUs from "./pages/ContactUs";
-import RefundPolicy from "./pages/RefundPolicy";
-import TermsConditions from "./pages/TermsConditions";
-import ShippingPolicy from "./pages/ShippingPolicy";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
 import ShopClosed from "./pages/ShopClosed";
+
+// Lazy load non-critical pages to reduce initial bundle
+const Checkout = lazy(() => import("./pages/Checkout"));
+const OrderSuccess = lazy(() => import("./pages/OrderSuccess"));
+const OrderTracking = lazy(() => import("./pages/OrderTracking"));
+const AdminLogin = lazy(() => import("./pages/AdminLogin"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const AboutUs = lazy(() => import("./pages/AboutUs"));
+const ContactUs = lazy(() => import("./pages/ContactUs"));
+const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
+const TermsConditions = lazy(() => import("./pages/TermsConditions"));
+const ShippingPolicy = lazy(() => import("./pages/ShippingPolicy"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+
+// Simple loading spinner for lazy-loaded routes
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-white">
+    <div className="w-8 h-8 border-3 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+  </div>
+);
 
 // Business hours configuration (IST timezone)
 const BUSINESS_HOURS = {
@@ -81,23 +93,25 @@ function Router() {
   }
   
   return (
-    <Switch>
-      <Route path={"/"} component={Home} />
-      <Route path={"/menu"} component={Menu} />
-      <Route path={"/checkout"} component={Checkout} />
-      <Route path={"/order-success"} component={OrderSuccess} />
-      <Route path={"/order-tracking"} component={OrderTracking} />
-      <Route path={"/admin/login"} component={AdminLogin} />
-      <Route path={"/admin/dashboard"} component={AdminDashboard} />
-      <Route path={"/about"} component={AboutUs} />
-      <Route path={"/contact"} component={ContactUs} />
-      <Route path={"/refund-policy"} component={RefundPolicy} />
-      <Route path={"/terms"} component={TermsConditions} />
-      <Route path={"/shipping"} component={ShippingPolicy} />
-      <Route path={"/privacy"} component={PrivacyPolicy} />
-      <Route path={"/404"} component={NotFound} />
-      <Route component={NotFound} />
-    </Switch>
+    <Suspense fallback={<PageLoader />}>
+      <Switch>
+        <Route path={"/"} component={Home} />
+        <Route path={"/menu"} component={Menu} />
+        <Route path={"/checkout"} component={Checkout} />
+        <Route path={"/order-success"} component={OrderSuccess} />
+        <Route path={"/order-tracking"} component={OrderTracking} />
+        <Route path={"/admin/login"} component={AdminLogin} />
+        <Route path={"/admin/dashboard"} component={AdminDashboard} />
+        <Route path={"/about"} component={AboutUs} />
+        <Route path={"/contact"} component={ContactUs} />
+        <Route path={"/refund-policy"} component={RefundPolicy} />
+        <Route path={"/terms"} component={TermsConditions} />
+        <Route path={"/shipping"} component={ShippingPolicy} />
+        <Route path={"/privacy"} component={PrivacyPolicy} />
+        <Route path={"/404"} component={NotFound} />
+        <Route component={NotFound} />
+      </Switch>
+    </Suspense>
   );
 }
 

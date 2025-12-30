@@ -48,12 +48,12 @@ export default function ShopClosed({ openingTime, reason }: ShopClosedProps) {
             <p className="text-2xl font-bold text-orange-600">{openingTime}</p>
           </div>
 
-          {/* Decorative Emojis */}
+          {/* Decorative Emojis - static to save performance */}
           <div className="flex justify-center gap-3 text-4xl mb-6">
-            <span className="animate-bounce" style={{ animationDelay: "0ms" }}>🍊</span>
-            <span className="animate-bounce" style={{ animationDelay: "100ms" }}>🥭</span>
-            <span className="animate-bounce" style={{ animationDelay: "200ms" }}>🍓</span>
-            <span className="animate-bounce" style={{ animationDelay: "300ms" }}>🍹</span>
+            <span>🍊</span>
+            <span>🥭</span>
+            <span>🍓</span>
+            <span>🍹</span>
           </div>
 
           {/* Business Hours */}
