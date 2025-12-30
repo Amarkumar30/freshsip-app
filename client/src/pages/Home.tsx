@@ -139,6 +139,9 @@ export default function Home() {
               <Link href="/order-tracking">
                 <span className="text-gray-400 hover:text-orange-400 transition-colors text-sm cursor-pointer">Track Order</span>
               </Link>
+              <Link href="/admin/login">
+                <span className="text-gray-400 hover:text-orange-400 transition-colors text-sm cursor-pointer">Admin Login</span>
+              </Link>
             </div>
 
             {/* Legal */}
