@@ -37,9 +37,18 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   
-  // Health check endpoint for Railway
+  // Global error handler for aborted requests (Railway health checks)
+  app.use((err: any, req: any, res: any, next: any) => {
+    if (err.type === 'request.aborted' || err.code === 'ECONNRESET') {
+      // Silently handle aborted requests (normal during health checks)
+      return;
+    }
+    next(err);
+  });
+  
+  // Health check endpoint for Railway (lightweight)
   app.get("/health", (_req, res) => {
-    res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+    res.status(200).send("ok");
   });
   
   // Register Razorpay webhook (before other routes)

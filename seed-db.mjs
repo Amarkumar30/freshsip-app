@@ -224,6 +224,15 @@ async function seed() {
     // Create tables first
     await createTables();
 
+    // Check if data already exists to avoid redundant seeding on every restart
+    const [existingItems] = await connection.execute('SELECT COUNT(*) as count FROM menuItems');
+    if (existingItems[0].count > 0) {
+      console.log('✓ Data already seeded, skipping inserts...');
+      console.log('\n✅ Database ready!');
+      await connection.end();
+      return;
+    }
+
     // Insert sizes
     const sizes = [
       { name: 'Small', priceMultiplier: 1.0 },
@@ -244,9 +253,6 @@ async function seed() {
       { name: 'Ice Cream', price: 30 },
       { name: 'Honey', price: 15 },
     ];
-    
-    // Clear existing add-ons to keep only Ice Cream and Honey
-    await connection.execute('DELETE FROM addOns');
 
     for (const addOn of addOns) {
       await connection.execute(
@@ -256,9 +262,7 @@ async function seed() {
     }
     console.log('✓ Add-ons added');
 
-    // Insert menu items - clear existing and add fresh
-    await connection.execute('DELETE FROM menuItems');
-    
+    // Insert menu items
     const menuItems = [
       // Fruit Juices
       {
