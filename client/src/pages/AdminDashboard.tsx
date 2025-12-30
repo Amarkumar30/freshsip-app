@@ -242,7 +242,8 @@ export default function AdminDashboard() {
       .filter((o: Order) => {
         const orderDate = new Date(o.createdAt);
         const today = new Date();
-        return orderDate.toDateString() === today.toDateString();
+        // Only count orders with confirmed payment
+        return orderDate.toDateString() === today.toDateString() && o.paymentStatus === "paid";
       })
       .reduce((sum: number, o: Order) => sum + parseFloat(o.totalAmount), 0),
     todayOrders: orders.filter((o: Order) => {
@@ -256,7 +257,7 @@ export default function AdminDashboard() {
   const getWeeklyStats = () => {
     const now = new Date();
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const weekOrders = orders.filter((o: Order) => new Date(o.createdAt) >= oneWeekAgo);
+    const weekOrders = orders.filter((o: Order) => new Date(o.createdAt) >= oneWeekAgo && o.paymentStatus === "paid");
     const weekRevenue = weekOrders.reduce((sum: number, o: Order) => sum + parseFloat(o.totalAmount), 0);
     
     // Daily breakdown for the week
@@ -265,7 +266,7 @@ export default function AdminDashboard() {
       const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
       const dayOrders = orders.filter((o: Order) => {
         const orderDate = new Date(o.createdAt);
-        return orderDate.toDateString() === date.toDateString();
+        return orderDate.toDateString() === date.toDateString() && o.paymentStatus === "paid";
       });
       const dayRevenue = dayOrders.reduce((sum: number, o: Order) => sum + parseFloat(o.totalAmount), 0);
       dailyData.push({
@@ -282,7 +283,7 @@ export default function AdminDashboard() {
   const getMonthlyStats = () => {
     const now = new Date();
     const oneMonthAgo = new Date(now.getFullYear(), now.getMonth(), 1); // Start of current month
-    const monthOrders = orders.filter((o: Order) => new Date(o.createdAt) >= oneMonthAgo);
+    const monthOrders = orders.filter((o: Order) => new Date(o.createdAt) >= oneMonthAgo && o.paymentStatus === "paid");
     const monthRevenue = monthOrders.reduce((sum: number, o: Order) => sum + parseFloat(o.totalAmount), 0);
     
     // Weekly breakdown for the month
