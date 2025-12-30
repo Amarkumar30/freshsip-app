@@ -33,23 +33,24 @@ async function startServer() {
   const app = express();
   const server = createServer(app);
   initializeWebSocket(server);
-  // Configure body parser with larger size limit for file uploads
-  app.use(express.json({ limit: "50mb" }));
-  app.use(express.urlencoded({ limit: "50mb", extended: true }));
   
-  // Global error handler for aborted requests (Railway health checks)
-  app.use((err: any, req: any, res: any, next: any) => {
-    if (err.type === 'request.aborted' || err.code === 'ECONNRESET') {
-      // Silently handle aborted requests (normal during health checks)
-      return;
-    }
-    next(err);
-  });
-  
-  // Health check endpoint for Railway (lightweight)
+  // Health check endpoint FIRST - before body parsing (lightweight, no body needed)
   app.get("/health", (_req, res) => {
     res.status(200).send("ok");
   });
+  
+  // Configure body parser with error handling for aborted requests
+  app.use((req, res, next) => {
+    express.json({ limit: "50mb" })(req, res, (err) => {
+      if (err && (err.type === 'request.aborted' || err.message === 'request aborted')) {
+        // Silently ignore aborted requests (Railway health checks, client disconnects)
+        return;
+      }
+      if (err) return next(err);
+      next();
+    });
+  });
+  app.use(express.urlencoded({ limit: "50mb", extended: true }));
   
   // Register Razorpay webhook (before other routes)
   registerRazorpayWebhook(app);
@@ -70,6 +71,19 @@ async function startServer() {
   } else {
     serveStatic(app);
   }
+
+  // Global error handler - must be LAST (catches any unhandled errors)
+  app.use((err: any, _req: any, res: any, _next: any) => {
+    // Silently handle aborted/reset connections
+    if (err.type === 'request.aborted' || err.code === 'ECONNRESET' || err.message === 'request aborted') {
+      return;
+    }
+    // Log other errors but don't crash
+    console.error('[Server Error]', err.message || err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
 
   const preferredPort = parseInt(process.env.PORT || "3000");
   const port = await findAvailablePort(preferredPort);
