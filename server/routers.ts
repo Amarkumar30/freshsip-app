@@ -17,6 +17,46 @@ if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
   });
 }
 
+// Rate limiting for checkout - 5 orders per hour per IP
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_MAX = 5;
+const RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hour in ms
+
+const getClientIP = (req: any): string => {
+  return req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
+         req.headers["x-real-ip"] ||
+         req.connection?.remoteAddress ||
+         req.socket?.remoteAddress ||
+         "unknown";
+};
+
+const checkRateLimit = (ip: string): { allowed: boolean; remaining: number; resetIn: number } => {
+  const now = Date.now();
+  const record = rateLimitMap.get(ip);
+  
+  // Clean up expired entries periodically
+  if (rateLimitMap.size > 10000) {
+    for (const [key, value] of rateLimitMap.entries()) {
+      if (now > value.resetTime) rateLimitMap.delete(key);
+    }
+  }
+  
+  if (!record || now > record.resetTime) {
+    // First request or window expired - reset
+    rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+    return { allowed: true, remaining: RATE_LIMIT_MAX - 1, resetIn: RATE_LIMIT_WINDOW };
+  }
+  
+  if (record.count >= RATE_LIMIT_MAX) {
+    // Rate limit exceeded
+    return { allowed: false, remaining: 0, resetIn: record.resetTime - now };
+  }
+  
+  // Increment count
+  record.count++;
+  return { allowed: true, remaining: RATE_LIMIT_MAX - record.count, resetIn: record.resetTime - now };
+};
+
 // Simple admin credentials (in production, use environment variables)
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "sanjeet";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "sanjeet@sau405";
@@ -92,7 +132,19 @@ export const appRouter = router({
           totalAmount: z.number(),
         })
       )
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        // Rate limit check
+        const clientIP = getClientIP(ctx.req);
+        const rateLimit = checkRateLimit(clientIP);
+        
+        if (!rateLimit.allowed) {
+          const minutesLeft = Math.ceil(rateLimit.resetIn / 60000);
+          throw new TRPCError({
+            code: "TOO_MANY_REQUESTS",
+            message: `Too many orders. Please try again in ${minutesLeft} minute${minutesLeft > 1 ? 's' : ''}.`,
+          });
+        }
+        
         try {
           const timestamp = Date.now();
           const random = Math.floor(Math.random() * 1000);
