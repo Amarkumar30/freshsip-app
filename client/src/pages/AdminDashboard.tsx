@@ -554,22 +554,17 @@ export default function AdminDashboard() {
                 {/* Order Header */}
                 <div className="flex items-start justify-between mb-2">
                   <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-orange-600 bg-orange-50 px-2 py-0.5 rounded">
-                        #{order.orderNumber}
-                      </span>
-                      <span className="font-bold text-gray-900">
-                        {order.items && order.items.length > 0 
-                          ? order.items.map((item, idx) => (
-                              <span key={idx}>
-                                {item.quantity}x {item.menuItemName || `Item`}
-                                {idx < order.items!.length - 1 ? ', ' : ''}
-                              </span>
-                            ))
-                          : `Order`
-                        }
-                      </span>
-                    </div>
+                    <p className="font-bold text-gray-900">
+                      {order.items && order.items.length > 0 
+                        ? order.items.map((item, idx) => (
+                            <span key={idx}>
+                              {item.quantity}x {item.menuItemName || `Item`}
+                              {idx < order.items!.length - 1 ? ', ' : ''}
+                            </span>
+                          ))
+                        : `Order`
+                      }
+                    </p>
                     <p className="text-sm text-gray-500 mt-0.5">
                       {order.customerName}
                     </p>
