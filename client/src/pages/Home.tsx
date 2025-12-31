@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { Droplet, ShoppingCart, Sparkles, Zap, ArrowRight } from "lucide-react";
+import { ShoppingCart, Sparkles, Zap, ArrowRight } from "lucide-react";
+import FreshSipLogo from "@/components/FreshSipLogo";
 
 export default function Home() {
   return (
@@ -8,12 +9,7 @@ export default function Home() {
       {/* Header */}
       <header className="bg-white/90 backdrop-blur-xl sticky top-0 z-50 border-b border-gray-100">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 bg-orange-500 rounded-xl flex items-center justify-center">
-              <Droplet className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-xl font-bold text-gray-900">FreshSip</span>
-          </div>
+          <FreshSipLogo size="sm" showTagline />
           <Link href="/menu">
             <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white rounded-full px-5 h-9 font-medium">
               Order Now
@@ -121,12 +117,7 @@ export default function Home() {
           <div className="flex flex-col md:flex-row justify-between items-start gap-8 mb-8">
             {/* Brand */}
             <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-2">
-                <div className="w-9 h-9 bg-orange-500 rounded-xl flex items-center justify-center">
-                  <Droplet className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-lg font-bold">FreshSip</span>
-              </div>
+              <FreshSipLogo size="sm" />
               <p className="text-gray-400 text-sm max-w-xs">Fresh juices for the SAU family.</p>
             </div>
 

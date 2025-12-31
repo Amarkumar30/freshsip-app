@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { CheckCircle, Droplet, Clock, ChefHat, Package, Home } from "lucide-react";
+import { CheckCircle, Clock, ChefHat, Package, Home } from "lucide-react";
+import FreshSipLogo from "@/components/FreshSipLogo";
 
 export default function OrderSuccess() {
   const [orderNumber, setOrderNumber] = useState("");
@@ -36,12 +37,7 @@ export default function OrderSuccess() {
       <header className="bg-white border-b sticky top-0 z-40">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <Link href="/">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
-                <Droplet className="w-5 h-5 text-white" />
-              </div>
-              <span className="font-bold text-gray-900">FreshSip</span>
-            </div>
+            <FreshSipLogo size="sm" />
           </Link>
         </div>
       </header>

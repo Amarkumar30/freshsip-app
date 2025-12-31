@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { Droplet, ArrowLeft, Loader2, User, Phone, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Loader2, User, Phone, CheckCircle2 } from "lucide-react";
+import FreshSipLogo from "@/components/FreshSipLogo";
 import { toast } from "sonner";
 
 interface CartItem {
@@ -252,12 +253,7 @@ export default function Checkout() {
               <ArrowLeft className="w-5 h-5 text-gray-600" />
             </Button>
           </Link>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
-              <Droplet className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-lg font-bold text-gray-900">Checkout</span>
-          </div>
+          <FreshSipLogo size="sm" />
         </div>
       </header>
 

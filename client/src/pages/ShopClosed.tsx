@@ -1,5 +1,6 @@
-import { Droplet, Clock, Calendar, Sun, Moon } from "lucide-react";
+import { Clock, Calendar, Sun, Moon } from "lucide-react";
 import { Link } from "wouter";
+import FreshSipLogo from "@/components/FreshSipLogo";
 
 interface ShopClosedProps {
   openingTime: string;
@@ -12,10 +13,7 @@ export default function ShopClosed({ openingTime, reason }: ShopClosedProps) {
       <div className="max-w-md w-full text-center animate-fade-in">
         {/* Logo */}
         <div className="mb-8">
-          <div className="w-16 h-16 bg-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <Droplet className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">FreshSip</h1>
+          <FreshSipLogo size="lg" showTagline className="justify-center" />
         </div>
 
         {/* Closed Status Card */}

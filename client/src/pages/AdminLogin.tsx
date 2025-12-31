@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Link } from "wouter";
-import { Droplet, Lock, User, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Lock, User, Eye, EyeOff, Loader2 } from "lucide-react";
+import FreshSipLogo from "@/components/FreshSipLogo";
 import { toast } from "sonner";
 
 // Admin credentials - in production, this should be server-side
@@ -56,14 +57,9 @@ export default function AdminLogin() {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/">
-            <div className="inline-flex items-center gap-3 cursor-pointer">
-              <div className="w-14 h-14 bg-gradient-to-br from-orange-400 to-amber-500 rounded-2xl flex items-center justify-center shadow-xl">
-                <Droplet className="w-8 h-8 text-white" />
-              </div>
-              <div className="text-left">
-                <h1 className="text-2xl font-bold text-white">FreshSip</h1>
-                <p className="text-purple-200 text-sm">Admin Panel</p>
-              </div>
+            <div className="inline-flex flex-col items-center gap-3 cursor-pointer">
+              <FreshSipLogo size="lg" showTagline />
+              <p className="text-purple-200 text-sm mt-1">Admin Panel</p>
             </div>
           </Link>
         </div>

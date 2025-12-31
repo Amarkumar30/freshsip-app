@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { ShoppingCart, Droplet, Plus, Minus, X, ChevronUp } from "lucide-react";
+import { ShoppingCart, Plus, Minus, X, ChevronUp } from "lucide-react";
+import FreshSipLogo from "@/components/FreshSipLogo";
 import { toast } from "sonner";
 
 interface CartItem {
@@ -117,12 +118,7 @@ export default function Menu() {
       <header className="bg-white/95 backdrop-blur-xl sticky top-0 z-40 border-b border-gray-100">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
           <Link href="/">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
-                <Droplet className="w-4 h-4 text-white" />
-              </div>
-              <span className="text-lg font-bold text-gray-900">FreshSip</span>
-            </div>
+            <FreshSipLogo size="sm" />
           </Link>
           
           {/* Desktop Cart */}

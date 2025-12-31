@@ -4,7 +4,8 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { Droplet, Search, Clock, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Search, Clock, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import FreshSipLogo from "@/components/FreshSipLogo";
 import { toast } from "sonner";
 
 export default function OrderTracking() {
@@ -104,10 +105,7 @@ export default function OrderTracking() {
       <header className="bg-white shadow-sm">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <Link href="/">
-            <div className="flex items-center gap-2 cursor-pointer">
-              <Droplet className="w-8 h-8 text-orange-500" />
-              <h1 className="text-2xl font-bold text-gray-900">FreshSip</h1>
-            </div>
+            <FreshSipLogo size="md" />
           </Link>
         </div>
       </header>
