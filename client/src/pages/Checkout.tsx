@@ -114,19 +114,18 @@ export default function Checkout() {
         name: "FreshSip Juice Bar",
         description: `Order #${orderResponse.orderNumber}`,
         image: "https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=100&h=100&fit=crop",
+        // Don't prefill contact to hide the "Using as" bar
         prefill: {
           name: customerName,
-          // Use customer phone if provided, otherwise use store's number so user doesn't need to enter
-          contact: customerPhone || "9999999999",
-          email: "customer@freshsip.in",
         },
-        // Hide contact input field since we prefill it
-        readonly: {
+        // Hide customer details section completely
+        hidden: {
           contact: true,
           email: true,
         },
         theme: {
           color: "#f97316", // Orange color to match brand
+          hide_topbar: true, // Hide the top bar with contact icon
         },
         handler: async (response: any) => {
           // Payment successful - redirect immediately for better UX
