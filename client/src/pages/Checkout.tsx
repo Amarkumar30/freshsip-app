@@ -129,30 +129,21 @@ export default function Checkout() {
           color: "#f97316", // Orange color to match brand
         },
         handler: async (response: any) => {
-          try {
-            console.log("[Payment] Verifying payment...", response);
-            // Step 4: Verify payment on server
-            const verifyResult = await verifyPaymentMutation.mutateAsync({
-              orderId: orderResponse.orderId,
-              razorpayOrderId: razorpayResponse.razorpayOrderId,
-              razorpayPaymentId: response.razorpay_payment_id,
-              razorpaySignature: response.razorpay_signature,
-            });
-            
-            console.log("[Payment] Verification successful:", verifyResult);
-
-            // Clear cart
-            localStorage.removeItem("cart");
-
-            // Redirect to success page with payment details
-            window.location.href = `/order-success?orderNumber=${orderResponse.orderNumber}&orderId=${orderResponse.orderId}&paymentId=${response.razorpay_payment_id}`;
-          } catch (error: any) {
-            console.error("Payment verification failed:", error);
-            // Still redirect to success if payment was done - webhook will handle it
-            localStorage.removeItem("cart");
-            toast.success("Payment received! Redirecting...");
-            window.location.href = `/order-success?orderNumber=${orderResponse.orderNumber}&orderId=${orderResponse.orderId}&paymentId=${response.razorpay_payment_id}`;
-          }
+          // Payment successful - redirect immediately for better UX
+          // Verification happens in background (webhook is the backup)
+          localStorage.removeItem("cart");
+          
+          // Redirect immediately - don't wait for server verification
+          const successUrl = `/order-success?orderNumber=${orderResponse.orderNumber}&orderId=${orderResponse.orderId}&paymentId=${response.razorpay_payment_id}`;
+          window.location.href = successUrl;
+          
+          // Fire verification in background (non-blocking)
+          verifyPaymentMutation.mutate({
+            orderId: orderResponse.orderId,
+            razorpayOrderId: razorpayResponse.razorpayOrderId,
+            razorpayPaymentId: response.razorpay_payment_id,
+            razorpaySignature: response.razorpay_signature,
+          });
         },
         modal: {
           ondismiss: () => {

@@ -314,7 +314,7 @@ export const appRouter = router({
             });
           }
 
-          // Verify signature
+          // Verify signature (fast - no I/O)
           const crypto = await import("crypto");
           const expectedSignature = crypto
             .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET || "")
@@ -328,35 +328,32 @@ export const appRouter = router({
             });
           }
 
-          // Update order payment status
-          await db.updateOrderPaymentStatus(input.orderId, "completed", input.razorpayPaymentId);
-          
-          // Auto-confirm the order after successful payment
-          await db.updateOrderStatusOnly(input.orderId, "confirmed");
+          // Update payment status and order status in parallel for speed
+          await Promise.all([
+            db.updateOrderPaymentStatus(input.orderId, "completed", input.razorpayPaymentId),
+            db.updateOrderStatusOnly(input.orderId, "confirmed"),
+          ]);
 
           console.log(`[Payment] Payment verified for order ${input.orderId}, payment ID: ${input.razorpayPaymentId}`);
 
-          // Get order details for emitting
-          const order = await db.getOrderById(input.orderId);
-          
-          if (order) {
-            // Emit new order event to admin panel (order is now paid and confirmed)
-            emitNewOrder({
-              id: order.id,
-              orderNumber: order.orderNumber,
-              customerName: order.customerName,
-              totalAmount: order.totalAmount,
-              status: "confirmed",
-              paymentStatus: "completed",
-              createdAt: order.createdAt,
-            });
-          }
-
-          // Emit payment update event
-          emitOrderUpdate(input.orderId, {
-            paymentStatus: "completed",
-            status: "confirmed",
-            razorpayPaymentId: input.razorpayPaymentId,
+          // Emit events in background (non-blocking)
+          db.getOrderById(input.orderId).then(order => {
+            if (order) {
+              emitNewOrder({
+                id: order.id,
+                orderNumber: order.orderNumber,
+                customerName: order.customerName,
+                totalAmount: order.totalAmount,
+                status: "confirmed",
+                paymentStatus: "completed",
+                createdAt: order.createdAt,
+              });
+              emitOrderUpdate(input.orderId, {
+                paymentStatus: "completed",
+                status: "confirmed",
+                razorpayPaymentId: input.razorpayPaymentId,
+              });
+            }
           });
 
           return {
