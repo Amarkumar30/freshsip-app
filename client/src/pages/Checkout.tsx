@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { Droplet, ArrowLeft, Loader2 } from "lucide-react";
+import { Droplet, ArrowLeft, Loader2, User, Phone, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface CartItem {
@@ -30,6 +30,10 @@ export default function Checkout() {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [phoneError, setPhoneError] = useState("");
+  const [nameError, setNameError] = useState("");
+  const phoneInputRef = useRef<HTMLInputElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   const createOrderMutation = trpc.orders.create.useMutation();
   const createRazorpayOrderMutation = trpc.payment.createRazorpayOrder.useMutation();
@@ -42,6 +46,12 @@ export default function Checkout() {
       setCart(JSON.parse(savedCart));
     }
 
+    // Load saved customer info for returning customers
+    const savedName = localStorage.getItem("customerName");
+    const savedPhone = localStorage.getItem("customerPhone");
+    if (savedName) setCustomerName(savedName);
+    if (savedPhone) setCustomerPhone(savedPhone);
+
     // Load Razorpay script
     const script = document.createElement("script");
     script.src = "https://checkout.razorpay.com/v1/checkout.js";
@@ -53,6 +63,37 @@ export default function Checkout() {
     };
   }, []);
 
+  // Validate phone number (Indian 10-digit)
+  const validatePhone = (phone: string): boolean => {
+    const cleaned = phone.replace(/\D/g, "");
+    return cleaned.length === 10 && /^[6-9]/.test(cleaned);
+  };
+
+  // Handle phone input with validation
+  const handlePhoneChange = (value: string) => {
+    // Only allow digits
+    const cleaned = value.replace(/\D/g, "").slice(0, 10);
+    setCustomerPhone(cleaned);
+    
+    if (cleaned.length === 10) {
+      if (!validatePhone(cleaned)) {
+        setPhoneError("Enter a valid Indian mobile number");
+      } else {
+        setPhoneError("");
+      }
+    } else if (cleaned.length > 0) {
+      setPhoneError("");
+    }
+  };
+
+  // Handle name input
+  const handleNameChange = (value: string) => {
+    setCustomerName(value);
+    if (value.trim().length >= 2) {
+      setNameError("");
+    }
+  };
+
   const calculateTotal = () => {
     return cart.reduce(
       (sum, item) => sum + (item.itemPrice + item.addOnsTotal) * item.quantity,
@@ -61,8 +102,17 @@ export default function Checkout() {
   };
 
   const handlePayment = async () => {
-    if (!customerName.trim()) {
-      toast.error("Please enter your name");
+    // Validate name
+    if (!customerName.trim() || customerName.trim().length < 2) {
+      setNameError("Please enter your name");
+      nameInputRef.current?.focus();
+      return;
+    }
+
+    // Validate phone (mandatory)
+    if (!customerPhone || !validatePhone(customerPhone)) {
+      setPhoneError("Please enter a valid 10-digit mobile number");
+      phoneInputRef.current?.focus();
       return;
     }
 
@@ -70,6 +120,10 @@ export default function Checkout() {
       toast.error("Cart is empty");
       return;
     }
+
+    // Save customer info for next time
+    localStorage.setItem("customerName", customerName.trim());
+    localStorage.setItem("customerPhone", customerPhone);
 
     setIsProcessing(true);
 
@@ -107,25 +161,47 @@ export default function Checkout() {
 
       // Step 3: Open Razorpay checkout
       const options = {
-        key: razorpayResponse.keyId, // Get key from server response
+        key: razorpayResponse.keyId,
         order_id: razorpayResponse.razorpayOrderId,
         amount: razorpayResponse.amount,
         currency: razorpayResponse.currency,
-        name: "FreshSip Juice Bar",
+        name: "FreshSip",
         description: `Order #${orderResponse.orderNumber}`,
         image: "https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=100&h=100&fit=crop",
-        // Don't prefill contact to hide the "Using as" bar
+        // Prefill with validated customer info
         prefill: {
-          name: customerName,
+          name: customerName.trim(),
+          contact: customerPhone,
         },
-        // Hide customer details section completely
-        hidden: {
+        // Make contact readonly since we've already collected it
+        readonly: {
           contact: true,
           email: true,
         },
+        // Hide email field completely
+        hidden: {
+          email: true,
+        },
         theme: {
-          color: "#f97316", // Orange color to match brand
-          hide_topbar: true, // Hide the top bar with contact icon
+          color: "#f97316",
+          backdrop_color: "rgba(0,0,0,0.6)",
+        },
+        config: {
+          display: {
+            // Show UPI apps prominently, hide contact section until user scrolls
+            blocks: {
+              banks: {
+                name: "Pay via UPI",
+                instruments: [
+                  { method: "upi", flows: ["qr", "collect", "intent"] }
+                ],
+              },
+            },
+            sequence: ["block.banks"],
+            preferences: {
+              show_default_blocks: true,
+            },
+          },
         },
         handler: async (response: any) => {
           // Payment successful - redirect immediately for better UX
@@ -195,29 +271,61 @@ export default function Checkout() {
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Name <span className="text-red-500">*</span>
                 </label>
-                <Input
-                  type="text"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="Enter your name"
-                  disabled={isProcessing}
-                  className="h-12 text-base rounded-xl border-gray-200 focus:border-orange-400 focus:ring-orange-400"
-                />
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Input
+                    ref={nameInputRef}
+                    type="text"
+                    value={customerName}
+                    onChange={(e) => handleNameChange(e.target.value)}
+                    placeholder="Enter your name"
+                    disabled={isProcessing}
+                    className={`h-12 pl-11 text-base rounded-xl border-gray-200 focus:border-orange-400 focus:ring-orange-400 transition-all ${
+                      nameError ? "border-red-400 focus:border-red-400 focus:ring-red-400" : ""
+                    } ${customerName.trim().length >= 2 ? "border-green-400 pr-10" : ""}`}
+                  />
+                  {customerName.trim().length >= 2 && !nameError && (
+                    <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500" />
+                  )}
+                </div>
+                {nameError && (
+                  <p className="mt-1.5 text-sm text-red-500 flex items-center gap-1">
+                    {nameError}
+                  </p>
+                )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Phone <span className="text-gray-400 text-xs font-normal">(optional)</span>
+                  Mobile Number <span className="text-red-500">*</span>
                 </label>
-                <Input
-                  type="tel"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  placeholder="For order updates"
-                  maxLength={10}
-                  disabled={isProcessing}
-                  className="h-12 text-base rounded-xl border-gray-200 focus:border-orange-400 focus:ring-orange-400"
-                />
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-gray-500">
+                    <Phone className="w-4 h-4" />
+                    <span className="text-sm font-medium">+91</span>
+                  </div>
+                  <Input
+                    ref={phoneInputRef}
+                    type="tel"
+                    inputMode="numeric"
+                    value={customerPhone}
+                    onChange={(e) => handlePhoneChange(e.target.value)}
+                    placeholder="10-digit mobile number"
+                    maxLength={10}
+                    disabled={isProcessing}
+                    className={`h-12 pl-[4.5rem] text-base rounded-xl border-gray-200 focus:border-orange-400 focus:ring-orange-400 transition-all ${
+                      phoneError ? "border-red-400 focus:border-red-400 focus:ring-red-400" : ""
+                    } ${validatePhone(customerPhone) ? "border-green-400 pr-10" : ""}`}
+                  />
+                  {validatePhone(customerPhone) && (
+                    <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500" />
+                  )}
+                </div>
+                {phoneError ? (
+                  <p className="mt-1.5 text-sm text-red-500">{phoneError}</p>
+                ) : (
+                  <p className="mt-1.5 text-xs text-gray-400">For order updates & payment</p>
+                )}
               </div>
             </div>
           </div>
@@ -248,11 +356,14 @@ export default function Checkout() {
             </div>
           </div>
 
-          {/* Payment Info */}
-          <div className="p-4 bg-orange-50 border border-orange-100 rounded-xl">
-            <p className="text-sm text-orange-700 font-medium">
-              💳 Pay via UPI, Cards, or Net Banking
-            </p>
+          {/* Secure Payment Info */}
+          <div className="flex items-center justify-center gap-2 py-3">
+            <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+            </svg>
+            <span className="text-xs text-gray-500">Secured by</span>
+            <span className="text-xs font-semibold text-gray-700">Razorpay</span>
+            <span className="text-xs text-gray-400">• UPI, Cards, Netbanking</span>
           </div>
 
           {/* Order Total - Desktop */}
