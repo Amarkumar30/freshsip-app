@@ -100,7 +100,6 @@ export default function AdminDashboard() {
   const [showOrderDetails, setShowOrderDetails] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<"queue" | "all" | "completed" | "analytics">("queue");
-  const [currentTime, setCurrentTime] = useState(new Date());
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Use tRPC hooks
@@ -129,11 +128,7 @@ export default function AdminDashboard() {
     }
   }, []);
 
-  // Update current time every second
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+
 
   const handleLogout = () => {
     localStorage.removeItem("adminAuth");
@@ -200,15 +195,6 @@ export default function AdminDashboard() {
       default:
         return <Clock className="w-4 h-4" />;
     }
-  };
-
-  const getTimeSince = (date: Date) => {
-    const seconds = Math.floor((currentTime.getTime() - new Date(date).getTime()) / 1000);
-    if (seconds < 60) return `${seconds}s ago`;
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
-    const hours = Math.floor(minutes / 60);
-    return `${hours}h ago`;
   };
 
   // Get order items from the query
@@ -582,7 +568,7 @@ export default function AdminDashboard() {
                       </span>
                     </div>
                     <p className="text-sm text-gray-500 mt-0.5">
-                      {order.customerName} • {getTimeSince(order.createdAt)}
+                      {order.customerName}
                     </p>
                   </div>
                   <div className="text-right">
