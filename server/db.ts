@@ -1,7 +1,7 @@
 import { eq, desc, asc, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
-import { InsertUser, users, menuItems, sizes, addOns, orders, orderItems, orderStatusHistory } from "../drizzle/schema";
+import { InsertUser, users, menuItems, sizes, addOns, orders, orderItems, orderStatusHistory, menuItemPrices } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -119,6 +119,28 @@ export async function getAllAddOns() {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(addOns).where(eq(addOns.isAvailable, true));
+}
+
+// Get all menu item prices (specific prices for each item-size combination)
+export async function getMenuItemPrices() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(menuItemPrices).where(eq(menuItemPrices.isAvailable, true));
+}
+
+// Get prices for a specific menu item
+export async function getMenuItemSizePrices(menuItemId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    sizeId: menuItemPrices.sizeId,
+    price: menuItemPrices.price,
+  }).from(menuItemPrices).where(
+    and(
+      eq(menuItemPrices.menuItemId, menuItemId),
+      eq(menuItemPrices.isAvailable, true)
+    )
+  );
 }
 
 // ============ Order Queries ============

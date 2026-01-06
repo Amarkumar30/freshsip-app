@@ -107,6 +107,7 @@ export const appRouter = router({
     getItems: publicProcedure.query(() => db.getAllMenuItems()),
     getSizes: publicProcedure.query(() => db.getAllSizes()),
     getAddOns: publicProcedure.query(() => db.getAllAddOns()),
+    getItemPrices: publicProcedure.query(() => db.getMenuItemPrices()),
   }),
 
   // Order procedures

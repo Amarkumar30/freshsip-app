@@ -213,6 +213,19 @@ async function createTables() {
     )
   `);
 
+  // Create menuItemPrices table for specific size pricing
+  await connection.execute(`
+    CREATE TABLE IF NOT EXISTS menuItemPrices (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      menuItemId INT NOT NULL,
+      sizeId INT NOT NULL,
+      price DECIMAL(10,2) NOT NULL,
+      isAvailable BOOLEAN DEFAULT TRUE NOT NULL,
+      UNIQUE KEY unique_item_size (menuItemId, sizeId),
+      INDEX idx_menuItemPrices_menuItemId (menuItemId)
+    )
+  `);
+
   console.log('✓ Tables created/verified');
 }
 
@@ -225,19 +238,31 @@ async function seed() {
     await createTables();
 
     // Check if data already exists to avoid redundant seeding on every restart
+    // Force reseed if prices table is empty (new feature)
     const [existingItems] = await connection.execute('SELECT COUNT(*) as count FROM menuItems');
-    if (existingItems[0].count > 0) {
-      console.log('✓ Data already seeded, skipping inserts...');
+    const [existingPrices] = await connection.execute('SELECT COUNT(*) as count FROM menuItemPrices').catch(() => [[{ count: 0 }]]);
+    
+    if (existingItems[0].count > 0 && existingPrices[0].count > 0) {
+      console.log('✓ Data already seeded with prices, skipping inserts...');
       console.log('\n✅ Database ready!');
       await connection.end();
       return;
+    }
+    
+    // If items exist but no prices, clear items to reseed with prices
+    if (existingItems[0].count > 0 && existingPrices[0].count === 0) {
+      console.log('⚠ Menu items exist but no prices. Clearing for reseed...');
+      await connection.execute('DELETE FROM menuItemPrices');
+      await connection.execute('DELETE FROM menuItems');
+      await connection.execute('DELETE FROM sizes');
     }
 
     // Insert sizes
     const sizes = [
       { name: 'Small', priceMultiplier: 1.0 },
-      { name: 'Medium', priceMultiplier: 1.3 },
-      { name: 'Large', priceMultiplier: 1.6 },
+      { name: 'Medium', priceMultiplier: 1.25 },
+      { name: 'Large', priceMultiplier: 1.5 },
+      { name: 'Ex-Large', priceMultiplier: 1.75 },
     ];
 
     for (const size of sizes) {
@@ -262,155 +287,238 @@ async function seed() {
     }
     console.log('✓ Add-ons added');
 
-    // Insert menu items
+    // Insert menu items with exact pricing from price chart
+    // Prices: [Small, Medium, Large, Ex-Large] - null means not available in that size
     const menuItems = [
-      // Fruit Juices
+      // ========== FRUIT JUICES ==========
+      {
+        name: 'Mix Fruit Juice',
+        description: 'A delightful blend of seasonal fruits bursting with natural flavors',
+        basePrice: 40,
+        prices: [40, 50, 60, 70],
+        category: 'Fruit Juices',
+        image: 'https://images.unsplash.com/photo-1622597467836-f3285f2131b8?w=500&h=500&fit=crop',
+      },
+      {
+        name: 'Mousmi Juice',
+        description: 'Fresh sweet lime juice, tangy and refreshing',
+        basePrice: 40,
+        prices: [40, 50, 60, 70],
+        category: 'Fruit Juices',
+        image: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=500&h=500&fit=crop',
+      },
       {
         name: 'Orange Juice',
-        description: 'Fresh squeezed orange juice, bursting with vitamin C and natural sweetness',
-        basePrice: 80,
+        description: 'Fresh squeezed orange juice, bursting with vitamin C',
+        basePrice: 40,
+        prices: [40, 50, 60, 70],
         category: 'Fruit Juices',
         image: 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=500&h=500&fit=crop',
       },
       {
-        name: 'Mango Juice',
-        description: 'Creamy Alphonso mango juice, the king of tropical fruits',
-        basePrice: 100,
-        category: 'Fruit Juices',
-        image: 'https://images.unsplash.com/photo-1546173159-315724a31696?w=500&h=500&fit=crop',
-      },
-      {
-        name: 'Watermelon Juice',
-        description: 'Cool and refreshing watermelon juice, perfect for hot days',
-        basePrice: 70,
-        category: 'Fruit Juices',
-        image: 'https://images.unsplash.com/photo-1527661591475-527312dd65f5?w=500&h=500&fit=crop',
-      },
-      {
         name: 'Pineapple Juice',
         description: 'Tropical pineapple juice with a perfect tangy-sweet balance',
-        basePrice: 85,
+        basePrice: 40,
+        prices: [40, 50, 60, 70],
         category: 'Fruit Juices',
         image: 'https://images.unsplash.com/photo-1544252890-c3e95e867a2b?w=500&h=500&fit=crop',
       },
       {
-        name: 'Pomegranate Juice',
+        name: 'Anar Juice',
         description: 'Ruby red antioxidant-rich pomegranate juice for health lovers',
-        basePrice: 120,
+        basePrice: 50,
+        prices: [50, 80, 100, 120],
         category: 'Fruit Juices',
         image: 'https://images.unsplash.com/photo-1553530666-ba11a7da3888?w=500&h=500&fit=crop',
       },
       {
-        name: 'Apple Juice',
-        description: 'Crisp and naturally sweet fresh apple juice',
-        basePrice: 80,
+        name: 'Vegetable Juice',
+        description: 'Healthy blend of fresh vegetables for nutrition boost',
+        basePrice: 40,
+        prices: [40, 50, 60, 70],
         category: 'Fruit Juices',
-        image: 'https://images.unsplash.com/photo-1576673442511-7e39b6545c87?w=500&h=500&fit=crop',
+        image: 'https://images.unsplash.com/photo-1610970881699-44a5587cabec?w=500&h=500&fit=crop',
       },
+      
+      // ========== SHAKES (Part 1) ==========
       {
-        name: 'Mixed Fruit Juice',
-        description: 'A delightful blend of seasonal fruits bursting with flavors',
-        basePrice: 90,
-        category: 'Fruit Juices',
-        image: 'https://images.unsplash.com/photo-1622597467836-f3285f2131b8?w=500&h=500&fit=crop',
-      },
-      // Shakes
-      {
-        name: 'Badam Shake',
-        description: 'Creamy almond milkshake with roasted almonds and a hint of cardamom',
-        basePrice: 130,
+        name: 'Mango Shake',
+        description: 'Thick and creamy mango milkshake, summer in a glass',
+        basePrice: 40,
+        prices: [40, 50, 60, 70],
         category: 'Shakes',
-        image: 'https://images.unsplash.com/photo-1579954115545-a95591f28bfc?w=500&h=500&fit=crop',
-      },
-      {
-        name: 'Oreo Shake',
-        description: 'Indulgent cookies and cream shake topped with crushed Oreos',
-        basePrice: 140,
-        category: 'Shakes',
-        image: 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=500&h=500&fit=crop',
-      },
-      {
-        name: 'Strawberry Shake',
-        description: 'Luscious strawberry milkshake made with fresh strawberries',
-        basePrice: 120,
-        category: 'Shakes',
-        image: 'https://images.unsplash.com/photo-1579954115563-e72bf1381629?w=500&h=500&fit=crop',
+        image: 'https://images.unsplash.com/photo-1623065422902-30a2d299bbe4?w=500&h=500&fit=crop',
       },
       {
         name: 'Banana Shake',
         description: 'Classic banana milkshake, creamy and naturally sweet',
-        basePrice: 100,
+        basePrice: 40,
+        prices: [40, 50, 60, 70],
+        category: 'Shakes',
+        image: 'https://images.unsplash.com/photo-1553787499-6f9133860278?w=500&h=500&fit=crop',
+      },
+      {
+        name: 'Khajoor Banana Mix',
+        description: 'Nutritious blend of dates and banana, naturally sweet',
+        basePrice: 40,
+        prices: [40, 50, 60, 70],
         category: 'Shakes',
         image: 'https://images.unsplash.com/photo-1553787499-6f9133860278?w=500&h=500&fit=crop',
       },
       {
         name: 'Chocolate Shake',
         description: 'Rich and decadent chocolate milkshake for chocolate lovers',
-        basePrice: 130,
+        basePrice: 40,
+        prices: [40, 50, 60, 70],
         category: 'Shakes',
         image: 'https://images.unsplash.com/photo-1541658016709-82535e94bc69?w=500&h=500&fit=crop',
       },
       {
-        name: 'Mango Shake',
-        description: 'Thick and creamy mango milkshake, summer in a glass',
-        basePrice: 120,
+        name: 'Strawberry Shake',
+        description: 'Luscious strawberry milkshake made with fresh strawberries',
+        basePrice: 40,
+        prices: [40, 50, 60, 70],
         category: 'Shakes',
-        image: 'https://images.unsplash.com/photo-1623065422902-30a2d299bbe4?w=500&h=500&fit=crop',
+        image: 'https://images.unsplash.com/photo-1579954115563-e72bf1381629?w=500&h=500&fit=crop',
       },
-      // Special Drinks
       {
-        name: 'Traffic Jam',
-        description: 'Colorful layered smoothie with strawberry, mango, and kiwi',
-        basePrice: 150,
+        name: 'Pineapple Shake',
+        description: 'Creamy tropical pineapple milkshake',
+        basePrice: 40,
+        prices: [40, 50, 60, 70],
+        category: 'Shakes',
+        image: 'https://images.unsplash.com/photo-1544252890-c3e95e867a2b?w=500&h=500&fit=crop',
+      },
+      {
+        name: 'Vanilla Shake',
+        description: 'Classic vanilla milkshake, smooth and creamy',
+        basePrice: 40,
+        prices: [40, 50, 60, 70],
+        category: 'Shakes',
+        image: 'https://images.unsplash.com/photo-1568901839119-631418a3910d?w=500&h=500&fit=crop',
+      },
+      {
+        name: 'Butter Scotch',
+        description: 'Buttery caramel flavored shake with crunchy bits',
+        basePrice: 40,
+        prices: [40, 50, 60, 70],
+        category: 'Shakes',
+        image: 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=500&h=500&fit=crop',
+      },
+      {
+        name: 'Kiwi Shake',
+        description: 'Refreshing kiwi milkshake with a tangy twist',
+        basePrice: 40,
+        prices: [40, 50, 60, 70],
+        category: 'Shakes',
+        image: 'https://images.unsplash.com/photo-1638176066666-ffb2f013c7dd?w=500&h=500&fit=crop',
+      },
+      
+      // ========== SPECIAL DRINKS ==========
+      {
+        name: 'Cold Coffee',
+        description: 'Refreshing iced coffee blended to perfection',
+        basePrice: 50,
+        prices: [null, 50, 80, 100], // No small size
         category: 'Special',
-        image: 'https://images.unsplash.com/photo-1502741224143-90386d7f8c82?w=500&h=500&fit=crop',
+        image: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=500&h=500&fit=crop',
       },
       {
-        name: 'Green Detox',
-        description: 'Healthy blend of spinach, apple, cucumber, and mint',
-        basePrice: 110,
+        name: 'Khajoor Shake',
+        description: 'Rich date shake, naturally sweetened with premium dates',
+        basePrice: 50,
+        prices: [50, 60, 70, 80],
         category: 'Special',
-        image: 'https://images.unsplash.com/photo-1610970881699-44a5587cabec?w=500&h=500&fit=crop',
+        image: 'https://images.unsplash.com/photo-1579954115545-a95591f28bfc?w=500&h=500&fit=crop',
       },
       {
-        name: 'Berry Blast',
-        description: 'Mixed berries smoothie with blueberries, raspberries, and strawberries',
-        basePrice: 140,
+        name: 'Kesar Badam',
+        description: 'Luxurious saffron almond shake, rich and aromatic',
+        basePrice: 40,
+        prices: [40, 50, 60, 70],
+        category: 'Special',
+        image: 'https://images.unsplash.com/photo-1579954115545-a95591f28bfc?w=500&h=500&fit=crop',
+      },
+      {
+        name: 'Kesar Pista',
+        description: 'Premium saffron pistachio shake, creamy delight',
+        basePrice: 40,
+        prices: [40, 50, 60, 70],
+        category: 'Special',
+        image: 'https://images.unsplash.com/photo-1579954115545-a95591f28bfc?w=500&h=500&fit=crop',
+      },
+      {
+        name: 'Black Currant',
+        description: 'Tangy black currant shake with berry goodness',
+        basePrice: 40,
+        prices: [40, 50, 60, 70],
         category: 'Special',
         image: 'https://images.unsplash.com/photo-1553177595-4de2bb0842b9?w=500&h=500&fit=crop',
       },
-      // Vegetable Juices
       {
-        name: 'Carrot Juice',
-        description: 'Fresh carrot juice, sweet and packed with beta-carotene',
-        basePrice: 75,
-        category: 'Vegetable',
-        image: 'https://images.unsplash.com/photo-1603569283847-aa295f0d016a?w=500&h=500&fit=crop',
+        name: 'Blueberry Shake',
+        description: 'Antioxidant-rich blueberry milkshake',
+        basePrice: 40,
+        prices: [40, 50, 60, 70],
+        category: 'Special',
+        image: 'https://images.unsplash.com/photo-1553177595-4de2bb0842b9?w=500&h=500&fit=crop',
       },
       {
-        name: 'Beetroot Juice',
-        description: 'Earthy beetroot juice, great for stamina and blood health',
-        basePrice: 80,
-        category: 'Vegetable',
-        image: 'https://images.unsplash.com/photo-1613478881426-daaadcf1ec08?w=500&h=500&fit=crop',
+        name: 'Oreo Shake',
+        description: 'Indulgent cookies and cream shake topped with crushed Oreos',
+        basePrice: 40,
+        prices: [40, 50, 60, 70],
+        category: 'Special',
+        image: 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=500&h=500&fit=crop',
       },
-      // Extras
       {
-        name: 'Straw',
-        description: 'Eco-friendly paper straw for your drink',
-        basePrice: 2,
-        category: 'Extras',
-        image: 'https://images.unsplash.com/photo-1572424121992-2ddb48b1d099?w=500&h=500&fit=crop',
+        name: 'Badam Shake',
+        description: 'Creamy almond milkshake with roasted almonds and cardamom',
+        basePrice: 40,
+        prices: [40, 50, 60, 70],
+        category: 'Special',
+        image: 'https://images.unsplash.com/photo-1579954115545-a95591f28bfc?w=500&h=500&fit=crop',
+      },
+      {
+        name: 'Traffic Jam',
+        description: 'Colorful layered smoothie with strawberry, mango, and kiwi',
+        basePrice: 60,
+        prices: [null, 60, 80, 100], // No small size
+        category: 'Special',
+        image: 'https://images.unsplash.com/photo-1502741224143-90386d7f8c82?w=500&h=500&fit=crop',
       },
     ];
 
     for (const item of menuItems) {
-      await connection.execute(
+      // Insert menu item
+      const [result] = await connection.execute(
         'INSERT IGNORE INTO menuItems (name, description, basePrice, category, image, isAvailable) VALUES (?, ?, ?, ?, ?, 1)',
         [item.name, item.description, item.basePrice, item.category, item.image]
       );
+      
+      // Get the menu item ID (either just inserted or existing)
+      const [rows] = await connection.execute('SELECT id FROM menuItems WHERE name = ?', [item.name]);
+      if (rows.length > 0 && item.prices) {
+        const menuItemId = rows[0].id;
+        const sizeNames = ['Small', 'Medium', 'Large', 'Ex-Large'];
+        
+        for (let i = 0; i < item.prices.length; i++) {
+          const price = item.prices[i];
+          if (price !== null) {
+            // Get size ID
+            const [sizeRows] = await connection.execute('SELECT id FROM sizes WHERE name = ?', [sizeNames[i]]);
+            if (sizeRows.length > 0) {
+              const sizeId = sizeRows[0].id;
+              await connection.execute(
+                'INSERT INTO menuItemPrices (menuItemId, sizeId, price, isAvailable) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE price = ?, isAvailable = 1',
+                [menuItemId, sizeId, price, price]
+              );
+            }
+          }
+        }
+      }
     }
-    console.log('✓ Menu items added');
+    console.log('✓ Menu items and prices added');
 
     console.log('\n✅ Database seeding completed successfully!');
   } catch (error) {

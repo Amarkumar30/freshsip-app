@@ -32,13 +32,34 @@ export default function Menu() {
   const { data: menuItems } = trpc.menu.getItems.useQuery();
   const { data: sizes } = trpc.menu.getSizes.useQuery();
   const { data: addOns } = trpc.menu.getAddOns.useQuery();
+  const { data: itemPrices } = trpc.menu.getItemPrices.useQuery();
 
-  // Auto-select first size when dialog opens
+  // Helper function to get specific price for item-size combo
+  const getItemSizePrice = (menuItemId: number, sizeId: number): number | null => {
+    const priceEntry = itemPrices?.find(
+      p => p.menuItemId === menuItemId && p.sizeId === sizeId
+    );
+    return priceEntry ? parseFloat(priceEntry.price) : null;
+  };
+
+  // Get available sizes for an item (only sizes with prices)
+  const getAvailableSizesForItem = (menuItemId: number) => {
+    if (!sizes || !itemPrices) return sizes || [];
+    const availableSizeIds = itemPrices
+      .filter(p => p.menuItemId === menuItemId)
+      .map(p => p.sizeId);
+    return sizes.filter(s => availableSizeIds.includes(s.id));
+  };
+
+  // Auto-select first available size when dialog opens
   useEffect(() => {
-    if (showDialog && sizes && sizes.length > 0 && !selectedSize) {
-      setSelectedSize(sizes[0].id);
+    if (showDialog && selectedItem && sizes && itemPrices && !selectedSize) {
+      const availableSizes = getAvailableSizesForItem(selectedItem.id);
+      if (availableSizes.length > 0) {
+        setSelectedSize(availableSizes[0].id);
+      }
     }
-  }, [showDialog, sizes]);
+  }, [showDialog, selectedItem, sizes, itemPrices]);
 
   const categories = ["All", ...new Set(menuItems?.map(item => item.category).filter(Boolean) || [])];
   
@@ -55,7 +76,11 @@ export default function Menu() {
     const size = sizes?.find((s) => s.id === selectedSize);
     const addOnsData = addOns?.filter((a) => selectedAddOns.includes(a.id)) || [];
 
-    const itemPrice = parseFloat(selectedItem.basePrice) * parseFloat(size?.priceMultiplier || "1");
+    // Get specific price for this item-size combination
+    const specificPrice = getItemSizePrice(selectedItem.id, selectedSize);
+    const itemPrice = specificPrice !== null 
+      ? specificPrice 
+      : parseFloat(selectedItem.basePrice) * parseFloat(size?.priceMultiplier || "1");
     const addOnsTotal = addOnsData.reduce((sum, a) => sum + parseFloat(a.price), 0);
 
     const cartItem: CartItem = {
@@ -245,9 +270,12 @@ export default function Menu() {
             {/* Size Selection */}
             <div>
               <h4 className="font-semibold text-gray-900 mb-3 text-sm">Choose Size</h4>
-              <div className="grid grid-cols-3 gap-2">
-                {sizes?.map((size) => {
-                  const price = (parseFloat(selectedItem?.basePrice || 0) * parseFloat(size.priceMultiplier)).toFixed(0);
+              <div className="grid grid-cols-4 gap-2">
+                {selectedItem && getAvailableSizesForItem(selectedItem.id).map((size) => {
+                  const specificPrice = getItemSizePrice(selectedItem.id, size.id);
+                  const price = specificPrice !== null 
+                    ? specificPrice.toFixed(0)
+                    : (parseFloat(selectedItem?.basePrice || "0") * parseFloat(size.priceMultiplier)).toFixed(0);
                   return (
                     <button
                       key={size.id}
@@ -258,7 +286,7 @@ export default function Menu() {
                           : "border-gray-100 bg-gray-50"
                       }`}
                     >
-                      <div className={`font-semibold text-sm ${selectedSize === size.id ? "text-orange-600" : "text-gray-700"}`}>{size.name}</div>
+                      <div className={`font-semibold text-xs ${selectedSize === size.id ? "text-orange-600" : "text-gray-700"}`}>{size.name}</div>
                       <div className={`text-xs mt-1 ${selectedSize === size.id ? "text-orange-500" : "text-gray-500"}`}>₹{price}</div>
                     </button>
                   );
@@ -326,8 +354,12 @@ export default function Menu() {
               className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-6 rounded-xl text-base"
             >
               Add to Cart • ₹{(() => {
+                if (!selectedItem || !selectedSize) return 0;
+                const specificPrice = getItemSizePrice(selectedItem.id, selectedSize);
                 const size = sizes?.find(s => s.id === selectedSize);
-                const basePrice = parseFloat(selectedItem?.basePrice || 0) * parseFloat(size?.priceMultiplier || 1);
+                const basePrice = specificPrice !== null 
+                  ? specificPrice 
+                  : parseFloat(selectedItem?.basePrice || "0") * parseFloat(size?.priceMultiplier || "1");
                 const addOnsTotal = addOns?.filter(a => selectedAddOns.includes(a.id)).reduce((sum, a) => sum + parseFloat(a.price), 0) || 0;
                 return ((basePrice + addOnsTotal) * quantity).toFixed(0);
               })()}

@@ -57,6 +57,23 @@ export type Size = typeof sizes.$inferSelect;
 export type InsertSize = typeof sizes.$inferInsert;
 
 /**
+ * Menu Item Prices table - stores specific prices for each item-size combination
+ */
+export const menuItemPrices = mysqlTable("menuItemPrices", {
+  id: int("id").autoincrement().primaryKey(),
+  menuItemId: int("menuItemId").notNull(),
+  sizeId: int("sizeId").notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  isAvailable: boolean("isAvailable").default(true).notNull(),
+}, (table) => ({
+  menuItemIdIdx: index("idx_menuItemPrices_menuItemId").on(table.menuItemId),
+  uniqueItemSize: index("idx_menuItemPrices_unique").on(table.menuItemId, table.sizeId),
+}));
+
+export type MenuItemPrice = typeof menuItemPrices.$inferSelect;
+export type InsertMenuItemPrice = typeof menuItemPrices.$inferInsert;
+
+/**
  * Add-ons table - stores optional items like ice cream, extra fruit, etc.
  */
 export const addOns = mysqlTable("addOns", {
