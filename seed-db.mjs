@@ -237,13 +237,53 @@ async function seed() {
     // Create tables first
     await createTables();
 
-    // Check if data already exists to avoid redundant seeding on every restart
-    // Force reseed if prices table is empty (new feature)
+    // Always update images for existing menu items (to fix image issues)
+    // Then check if full reseed is needed
     const [existingItems] = await connection.execute('SELECT COUNT(*) as count FROM menuItems');
     const [existingPrices] = await connection.execute('SELECT COUNT(*) as count FROM menuItemPrices').catch(() => [[{ count: 0 }]]);
     
+    // Define image updates - always apply these
+    const imageUpdates = [
+      { name: 'Mix Fruit Juice', image: 'https://images.unsplash.com/photo-1622597467836-f3285f2131b8?w=500&h=500&fit=crop' },
+      { name: 'Mousmi Juice', image: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=500&h=500&fit=crop' },
+      { name: 'Orange Juice', image: 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=500&h=500&fit=crop' },
+      { name: 'Pineapple Juice', image: 'https://images.unsplash.com/photo-1544252890-c3e95e867a2b?w=500&h=500&fit=crop' },
+      { name: 'Anar Juice', image: 'https://images.unsplash.com/photo-1553530666-ba11a7da3888?w=500&h=500&fit=crop' },
+      { name: 'Vegetable Juice', image: 'https://images.unsplash.com/photo-1610970881699-44a5587cabec?w=500&h=500&fit=crop' },
+      { name: 'Mango Shake', image: 'https://images.unsplash.com/photo-1623065422902-30a2d299bbe4?w=500&h=500&fit=crop' },
+      { name: 'Banana Shake', image: 'https://images.unsplash.com/photo-1553787499-6f9133860278?w=500&h=500&fit=crop' },
+      { name: 'Khajoor Banana Mix', image: 'https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?w=500&h=500&fit=crop' },
+      { name: 'Chocolate Shake', image: 'https://images.unsplash.com/photo-1541658016709-82535e94bc69?w=500&h=500&fit=crop' },
+      { name: 'Strawberry Shake', image: 'https://images.unsplash.com/photo-1579954115563-e72bf1381629?w=500&h=500&fit=crop' },
+      { name: 'Pineapple Shake', image: 'https://images.unsplash.com/photo-1497534446932-c925b458314e?w=500&h=500&fit=crop' },
+      { name: 'Vanilla Shake', image: 'https://images.unsplash.com/photo-1568901839119-631418a3910d?w=500&h=500&fit=crop' },
+      { name: 'Butter Scotch', image: 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=500&h=500&fit=crop' },
+      { name: 'Kiwi Shake', image: 'https://images.unsplash.com/photo-1602526429747-ac387a91d43b?w=500&h=500&fit=crop' },
+      { name: 'Cold Coffee', image: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=500&h=500&fit=crop' },
+      { name: 'Khajoor Shake', image: 'https://images.unsplash.com/photo-1577805947697-89e18249d767?w=500&h=500&fit=crop' },
+      { name: 'Kesar Badam', image: 'https://images.unsplash.com/photo-1571942676516-bcab84649e44?w=500&h=500&fit=crop' },
+      { name: 'Kesar Pista', image: 'https://images.unsplash.com/photo-1587049633312-d628ae50a8ae?w=500&h=500&fit=crop' },
+      { name: 'Black Currant', image: 'https://images.unsplash.com/photo-1505252585461-04db1eb84625?w=500&h=500&fit=crop' },
+      { name: 'Blueberry Shake', image: 'https://images.unsplash.com/photo-1432457990754-c8b5f21f969c?w=500&h=500&fit=crop' },
+      { name: 'Oreo Shake', image: 'https://images.unsplash.com/photo-1619158401201-8fa932695178?w=500&h=500&fit=crop' },
+      { name: 'Badam Shake', image: 'https://images.unsplash.com/photo-1626078299536-4a0e54bff7c6?w=500&h=500&fit=crop' },
+      { name: 'Traffic Jam', image: 'https://images.unsplash.com/photo-1502741224143-90386d7f8c82?w=500&h=500&fit=crop' },
+    ];
+    
+    // Always update images for existing items
+    if (existingItems[0].count > 0) {
+      console.log('⚡ Updating menu item images...');
+      for (const item of imageUpdates) {
+        await connection.execute(
+          'UPDATE menuItems SET image = ? WHERE name = ?',
+          [item.image, item.name]
+        );
+      }
+      console.log('✓ Menu images updated');
+    }
+    
     if (existingItems[0].count > 0 && existingPrices[0].count > 0) {
-      console.log('✓ Data already seeded with prices, skipping inserts...');
+      console.log('✓ Data already seeded with prices');
       console.log('\n✅ Database ready!');
       await connection.end();
       return;
