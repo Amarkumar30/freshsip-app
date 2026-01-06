@@ -251,17 +251,17 @@ async function seed() {
       { name: 'Vegetable Juice', image: 'https://images.unsplash.com/photo-1610970881699-44a5587cabec?w=500&h=500&fit=crop' },
       { name: 'Mango Shake', image: 'https://images.unsplash.com/photo-1623065422902-30a2d299bbe4?w=500&h=500&fit=crop' },
       { name: 'Banana Shake', image: 'https://i.pinimg.com/736x/7b/09/63/7b096395683cdf1111cdcb6c47229225.jpg' }, // User provided Pinterest
-      { name: 'Khajoor Banana Mix', image: 'https://images.unsplash.com/photo-1609951651556-5334e2706168?w=500&h=500&fit=crop' },
+      { name: 'Khajoor Banana Mix', image: 'https://i.pinimg.com/1200x/14/3e/4a/143e4a63ce443d6475a9083c80e63f17.jpg' }, // User provided Pinterest
       { name: 'Chocolate Shake', image: 'https://images.unsplash.com/photo-1541658016709-82535e94bc69?w=500&h=500&fit=crop' },
       { name: 'Strawberry Shake', image: 'https://images.unsplash.com/photo-1579954115563-e72bf1381629?w=500&h=500&fit=crop' },
       { name: 'Vanilla Shake', image: 'https://images.unsplash.com/photo-1568901839119-631418a3910d?w=500&h=500&fit=crop' },
       { name: 'Butter Scotch', image: 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=500&h=500&fit=crop' },
-      { name: 'Kiwi Shake', image: 'https://images.unsplash.com/photo-1616684000067-36952fde56ec?w=500&h=500&fit=crop' },
+      { name: 'Kiwi Shake', image: 'https://i.pinimg.com/736x/c5/9a/9b/c59a9bef524704c3fed0c7bb4647571d.jpg' }, // User provided Pinterest
       { name: 'Cold Coffee', image: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=500&h=500&fit=crop' },
-      { name: 'Khajoor Shake', image: 'https://images.unsplash.com/photo-1597714026720-8f74c62310ba?w=500&h=500&fit=crop' },
-      { name: 'Kesar Badam', image: 'https://images.unsplash.com/photo-1495774856032-8b90bbb32b32?w=500&h=500&fit=crop' },
-      { name: 'Kesar Pista', image: 'https://images.unsplash.com/photo-1525385133512-2f3bdd039054?w=500&h=500&fit=crop' },
-      { name: 'Black Currant', image: 'https://images.unsplash.com/photo-1568909344668-6f14a07b56a0?w=500&h=500&fit=crop' },
+      { name: 'Khajoor Shake', image: 'https://i.pinimg.com/1200x/30/cd/4b/30cd4b640c4f9bdd165297316ae6c614.jpg' }, // User provided Pinterest
+      { name: 'Kesar Badam', image: 'https://i.pinimg.com/736x/a5/36/62/a5366248c1363627ae47b9d631a7626f.jpg' }, // User provided Pinterest
+      { name: 'Kesar Pista', image: 'https://i.pinimg.com/736x/3f/a4/64/3fa464c9e546fc06437bff4ec77f96b1.jpg' }, // User provided Pinterest
+      { name: 'Black Currant', image: 'https://i.pinimg.com/736x/a6/64/ed/a664edee9ad699c21badfae952a0e548.jpg' }, // User provided Pinterest
       { name: 'Blueberry Shake', image: 'https://i.pinimg.com/1200x/41/0b/b6/410bb6567b3b06e3e97920d32ebb4340.jpg' }, // User provided Pinterest
       { name: 'Oreo Shake', image: 'https://images.unsplash.com/photo-1619158401201-8fa932695178?w=500&h=500&fit=crop' },
       { name: 'Badam Shake', image: 'https://i.pinimg.com/736x/c7/b5/b1/c7b5b10e2cddec350fe8fa38e872e6c3.jpg' }, // User provided - Pinterest
@@ -408,7 +408,7 @@ async function seed() {
         basePrice: 40,
         prices: [40, 50, 60, 70],
         category: 'Shakes',
-        image: 'https://images.unsplash.com/photo-1609951651556-5334e2706168?w=500&h=500&fit=crop',
+        image: 'https://i.pinimg.com/1200x/14/3e/4a/143e4a63ce443d6475a9083c80e63f17.jpg',
       },
       {
         name: 'Chocolate Shake',
@@ -448,7 +448,7 @@ async function seed() {
         basePrice: 40,
         prices: [40, 50, 60, 70],
         category: 'Shakes',
-        image: 'https://images.unsplash.com/photo-1616684000067-36952fde56ec?w=500&h=500&fit=crop',
+        image: 'https://i.pinimg.com/736x/c5/9a/9b/c59a9bef524704c3fed0c7bb4647571d.jpg',
       },
       
       // ========== SPECIAL DRINKS ==========
@@ -466,7 +466,7 @@ async function seed() {
         basePrice: 50,
         prices: [50, 60, 70, 80],
         category: 'Special',
-        image: 'https://images.unsplash.com/photo-1597714026720-8f74c62310ba?w=500&h=500&fit=crop',
+        image: 'https://i.pinimg.com/1200x/30/cd/4b/30cd4b640c4f9bdd165297316ae6c614.jpg',
       },
       {
         name: 'Kesar Badam',
@@ -474,7 +474,7 @@ async function seed() {
         basePrice: 40,
         prices: [40, 50, 60, 70],
         category: 'Special',
-        image: 'https://images.unsplash.com/photo-1495774856032-8b90bbb32b32?w=500&h=500&fit=crop',
+        image: 'https://i.pinimg.com/736x/a5/36/62/a5366248c1363627ae47b9d631a7626f.jpg',
       },
       {
         name: 'Kesar Pista',
@@ -482,7 +482,7 @@ async function seed() {
         basePrice: 40,
         prices: [40, 50, 60, 70],
         category: 'Special',
-        image: 'https://images.unsplash.com/photo-1525385133512-2f3bdd039054?w=500&h=500&fit=crop',
+        image: 'https://i.pinimg.com/736x/3f/a4/64/3fa464c9e546fc06437bff4ec77f96b1.jpg',
       },
       {
         name: 'Black Currant',
@@ -490,7 +490,7 @@ async function seed() {
         basePrice: 40,
         prices: [40, 50, 60, 70],
         category: 'Special',
-        image: 'https://images.unsplash.com/photo-1568909344668-6f14a07b56a0?w=500&h=500&fit=crop',
+        image: 'https://i.pinimg.com/736x/a6/64/ed/a664edee9ad699c21badfae952a0e548.jpg',
       },
       {
         name: 'Blueberry Shake',
