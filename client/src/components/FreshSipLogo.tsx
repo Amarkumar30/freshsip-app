@@ -3,6 +3,7 @@ interface FreshSipLogoProps {
   showTagline?: boolean;
   variant?: "full" | "icon";
   className?: string;
+  dark?: boolean; // Use on dark backgrounds
 }
 
 export default function FreshSipLogo({
@@ -10,6 +11,7 @@ export default function FreshSipLogo({
   showTagline = false,
   variant = "full",
   className = "",
+  dark = false,
 }: FreshSipLogoProps) {
   const sizes = {
     sm: { icon: 28, text: "text-base", tagline: "text-[8px]" },
@@ -82,11 +84,11 @@ export default function FreshSipLogo({
     <div className={`flex items-center gap-2 ${className}`}>
       <OrangeSlice />
       <div className="flex flex-col">
-        <span className={`font-bold text-gray-900 ${textSize} leading-tight`}>
+        <span className={`font-bold ${dark ? 'text-white' : 'text-gray-900'} ${textSize} leading-tight`}>
           Fresh<span className="text-orange-500">Sip</span>
         </span>
         {showTagline && (
-          <span className={`text-gray-500 ${taglineSize} -mt-0.5 italic`}>
+          <span className={`${dark ? 'text-gray-400' : 'text-gray-500'} ${taglineSize} -mt-0.5 italic`}>
             Non Preservative Juice
           </span>
         )}

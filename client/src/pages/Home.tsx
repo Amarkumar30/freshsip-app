@@ -165,7 +165,7 @@ export default function Home() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
             {/* Brand */}
             <div className="col-span-2 md:col-span-1">
-              <FreshSipLogo size="sm" />
+              <FreshSipLogo size="sm" dark />
               <p className="text-gray-400 text-sm mt-3 max-w-xs">Fresh juices & shakes made with love for the SAU family.</p>
             </div>
 
