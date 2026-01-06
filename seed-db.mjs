@@ -242,30 +242,30 @@ async function seed() {
     const [existingItems] = await connection.execute('SELECT COUNT(*) as count FROM menuItems');
     const [existingPrices] = await connection.execute('SELECT COUNT(*) as count FROM menuItemPrices').catch(() => [[{ count: 0 }]]);
     
-    // Define image updates - always apply these (VERIFIED WORKING UNSPLASH IMAGES)
+    // Define image updates - always apply these (USER PROVIDED IMAGES)
     const imageUpdates = [
       { name: 'Mix Fruit Juice', image: 'https://images.unsplash.com/photo-1622597467836-f3285f2131b8?w=500&h=500&fit=crop' },
       { name: 'Orange Juice', image: 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=500&h=500&fit=crop' },
-      { name: 'Pineapple Juice', image: 'https://images.unsplash.com/photo-1550258987-190a2d41a8ba?w=500&h=500&fit=crop' }, // Fresh pineapple fruit
-      { name: 'Anar Juice', image: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=500&h=500&fit=crop' }, // Pomegranate fruit
+      { name: 'Pineapple Juice', image: 'https://source.unsplash.com/OKT6Ce9fwqI/500x500' }, // User provided - pineapple on yellow
+      { name: 'Anar Juice', image: 'https://source.unsplash.com/gLb467qQVxU/500x500' }, // User provided - cut pomegranates
       { name: 'Vegetable Juice', image: 'https://images.unsplash.com/photo-1610970881699-44a5587cabec?w=500&h=500&fit=crop' },
       { name: 'Mango Shake', image: 'https://images.unsplash.com/photo-1623065422902-30a2d299bbe4?w=500&h=500&fit=crop' },
-      { name: 'Banana Shake', image: 'https://images.unsplash.com/photo-1553787499-6f9133860278?w=500&h=500&fit=crop' },
-      { name: 'Khajoor Banana Mix', image: 'https://images.unsplash.com/photo-1609951651556-5334e2706168?w=500&h=500&fit=crop' }, // Dates and banana smoothie
+      { name: 'Banana Shake', image: 'https://source.unsplash.com/y0KwfCF8h-4/500x500' }, // User provided - banana with ice cream
+      { name: 'Khajoor Banana Mix', image: 'https://images.unsplash.com/photo-1609951651556-5334e2706168?w=500&h=500&fit=crop' },
       { name: 'Chocolate Shake', image: 'https://images.unsplash.com/photo-1541658016709-82535e94bc69?w=500&h=500&fit=crop' },
       { name: 'Strawberry Shake', image: 'https://images.unsplash.com/photo-1579954115563-e72bf1381629?w=500&h=500&fit=crop' },
       { name: 'Vanilla Shake', image: 'https://images.unsplash.com/photo-1568901839119-631418a3910d?w=500&h=500&fit=crop' },
-      { name: 'Butter Scotch', image: 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=500&h=500&fit=crop' }, // Caramel butterscotch
-      { name: 'Kiwi Shake', image: 'https://images.unsplash.com/photo-1616684000067-36952fde56ec?w=500&h=500&fit=crop' }, // Green kiwi smoothie
+      { name: 'Butter Scotch', image: 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=500&h=500&fit=crop' },
+      { name: 'Kiwi Shake', image: 'https://images.unsplash.com/photo-1616684000067-36952fde56ec?w=500&h=500&fit=crop' },
       { name: 'Cold Coffee', image: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=500&h=500&fit=crop' },
-      { name: 'Khajoor Shake', image: 'https://images.unsplash.com/photo-1597714026720-8f74c62310ba?w=500&h=500&fit=crop' }, // Date shake brown
-      { name: 'Kesar Badam', image: 'https://images.unsplash.com/photo-1495774856032-8b90bbb32b32?w=500&h=500&fit=crop' }, // Saffron almond milk golden
-      { name: 'Kesar Pista', image: 'https://images.unsplash.com/photo-1525385133512-2f3bdd039054?w=500&h=500&fit=crop' }, // Pistachio green shake
-      { name: 'Black Currant', image: 'https://images.unsplash.com/photo-1568909344668-6f14a07b56a0?w=500&h=500&fit=crop' }, // Dark purple berries
-      { name: 'Blueberry Shake', image: 'https://images.unsplash.com/photo-1553530979-7ee52a2670c4?w=500&h=500&fit=crop' }, // Purple blueberry smoothie
+      { name: 'Khajoor Shake', image: 'https://images.unsplash.com/photo-1597714026720-8f74c62310ba?w=500&h=500&fit=crop' },
+      { name: 'Kesar Badam', image: 'https://images.unsplash.com/photo-1495774856032-8b90bbb32b32?w=500&h=500&fit=crop' },
+      { name: 'Kesar Pista', image: 'https://images.unsplash.com/photo-1525385133512-2f3bdd039054?w=500&h=500&fit=crop' },
+      { name: 'Black Currant', image: 'https://images.unsplash.com/photo-1568909344668-6f14a07b56a0?w=500&h=500&fit=crop' },
+      { name: 'Blueberry Shake', image: 'https://source.unsplash.com/0QMiCaiK650/500x500' }, // User provided - blueberries plate
       { name: 'Oreo Shake', image: 'https://images.unsplash.com/photo-1619158401201-8fa932695178?w=500&h=500&fit=crop' },
-      { name: 'Badam Shake', image: 'https://images.unsplash.com/photo-1559825481-12a05cc00344?w=500&h=500&fit=crop' }, // Almond milk creamy beige
-      { name: 'Traffic Jam', image: 'https://images.unsplash.com/photo-1502741224143-90386d7f8c82?w=500&h=500&fit=crop' },
+      { name: 'Badam Shake', image: 'https://i.pinimg.com/736x/c7/b5/b1/c7b5b10e2cddec350fe8fa38e872e6c3.jpg' }, // User provided - Pinterest
+      { name: 'Traffic Jam', image: 'https://i.pinimg.com/1200x/27/79/47/277947a4d8322924af89cb5bbc9e831f.jpg' }, // User provided - Pinterest
     ];
     
     // Items to delete (removed from menu)
@@ -366,7 +366,7 @@ async function seed() {
         basePrice: 40,
         prices: [40, 50, 60, 70],
         category: 'Fruit Juices',
-        image: 'https://images.unsplash.com/photo-1550258987-190a2d41a8ba?w=500&h=500&fit=crop',
+        image: 'https://source.unsplash.com/OKT6Ce9fwqI/500x500',
       },
       {
         name: 'Anar Juice',
@@ -374,7 +374,7 @@ async function seed() {
         basePrice: 50,
         prices: [50, 80, 100, 120],
         category: 'Fruit Juices',
-        image: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=500&h=500&fit=crop',
+        image: 'https://source.unsplash.com/gLb467qQVxU/500x500',
       },
       {
         name: 'Vegetable Juice',
@@ -400,7 +400,7 @@ async function seed() {
         basePrice: 40,
         prices: [40, 50, 60, 70],
         category: 'Shakes',
-        image: 'https://images.unsplash.com/photo-1553787499-6f9133860278?w=500&h=500&fit=crop',
+        image: 'https://source.unsplash.com/y0KwfCF8h-4/500x500',
       },
       {
         name: 'Khajoor Banana Mix',
@@ -498,7 +498,7 @@ async function seed() {
         basePrice: 40,
         prices: [40, 50, 60, 70],
         category: 'Special',
-        image: 'https://images.unsplash.com/photo-1553530979-7ee52a2670c4?w=500&h=500&fit=crop',
+        image: 'https://source.unsplash.com/0QMiCaiK650/500x500',
       },
       {
         name: 'Oreo Shake',
@@ -514,7 +514,7 @@ async function seed() {
         basePrice: 40,
         prices: [40, 50, 60, 70],
         category: 'Special',
-        image: 'https://images.unsplash.com/photo-1559825481-12a05cc00344?w=500&h=500&fit=crop',
+        image: 'https://i.pinimg.com/736x/c7/b5/b1/c7b5b10e2cddec350fe8fa38e872e6c3.jpg',
       },
       {
         name: 'Traffic Jam',
@@ -522,7 +522,7 @@ async function seed() {
         basePrice: 60,
         prices: [null, 60, 80, 100], // No small size
         category: 'Special',
-        image: 'https://images.unsplash.com/photo-1502741224143-90386d7f8c82?w=500&h=500&fit=crop',
+        image: 'https://i.pinimg.com/1200x/27/79/47/277947a4d8322924af89cb5bbc9e831f.jpg',
       },
     ];
 
