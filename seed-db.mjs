@@ -246,11 +246,11 @@ async function seed() {
     const imageUpdates = [
       { name: 'Mix Fruit Juice', image: 'https://images.unsplash.com/photo-1622597467836-f3285f2131b8?w=500&h=500&fit=crop' },
       { name: 'Orange Juice', image: 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=500&h=500&fit=crop' },
-      { name: 'Pineapple Juice', image: 'https://source.unsplash.com/OKT6Ce9fwqI/500x500' }, // User provided - pineapple on yellow
-      { name: 'Anar Juice', image: 'https://source.unsplash.com/gLb467qQVxU/500x500' }, // User provided - cut pomegranates
+      { name: 'Pineapple Juice', image: 'https://i.pinimg.com/1200x/0f/7c/bc/0f7cbc51a9bf9d460441589dbf4838c6.jpg' }, // User provided Pinterest
+      { name: 'Anar Juice', image: 'https://i.pinimg.com/1200x/27/9f/4d/279f4d5c03133d3beacff0c8755b2134.jpg' }, // User provided Pinterest
       { name: 'Vegetable Juice', image: 'https://images.unsplash.com/photo-1610970881699-44a5587cabec?w=500&h=500&fit=crop' },
       { name: 'Mango Shake', image: 'https://images.unsplash.com/photo-1623065422902-30a2d299bbe4?w=500&h=500&fit=crop' },
-      { name: 'Banana Shake', image: 'https://source.unsplash.com/y0KwfCF8h-4/500x500' }, // User provided - banana with ice cream
+      { name: 'Banana Shake', image: 'https://i.pinimg.com/736x/7b/09/63/7b096395683cdf1111cdcb6c47229225.jpg' }, // User provided Pinterest
       { name: 'Khajoor Banana Mix', image: 'https://images.unsplash.com/photo-1609951651556-5334e2706168?w=500&h=500&fit=crop' },
       { name: 'Chocolate Shake', image: 'https://images.unsplash.com/photo-1541658016709-82535e94bc69?w=500&h=500&fit=crop' },
       { name: 'Strawberry Shake', image: 'https://images.unsplash.com/photo-1579954115563-e72bf1381629?w=500&h=500&fit=crop' },
@@ -262,7 +262,7 @@ async function seed() {
       { name: 'Kesar Badam', image: 'https://images.unsplash.com/photo-1495774856032-8b90bbb32b32?w=500&h=500&fit=crop' },
       { name: 'Kesar Pista', image: 'https://images.unsplash.com/photo-1525385133512-2f3bdd039054?w=500&h=500&fit=crop' },
       { name: 'Black Currant', image: 'https://images.unsplash.com/photo-1568909344668-6f14a07b56a0?w=500&h=500&fit=crop' },
-      { name: 'Blueberry Shake', image: 'https://source.unsplash.com/0QMiCaiK650/500x500' }, // User provided - blueberries plate
+      { name: 'Blueberry Shake', image: 'https://i.pinimg.com/1200x/41/0b/b6/410bb6567b3b06e3e97920d32ebb4340.jpg' }, // User provided Pinterest
       { name: 'Oreo Shake', image: 'https://images.unsplash.com/photo-1619158401201-8fa932695178?w=500&h=500&fit=crop' },
       { name: 'Badam Shake', image: 'https://i.pinimg.com/736x/c7/b5/b1/c7b5b10e2cddec350fe8fa38e872e6c3.jpg' }, // User provided - Pinterest
       { name: 'Traffic Jam', image: 'https://i.pinimg.com/1200x/27/79/47/277947a4d8322924af89cb5bbc9e831f.jpg' }, // User provided - Pinterest
@@ -366,7 +366,7 @@ async function seed() {
         basePrice: 40,
         prices: [40, 50, 60, 70],
         category: 'Fruit Juices',
-        image: 'https://source.unsplash.com/OKT6Ce9fwqI/500x500',
+        image: 'https://i.pinimg.com/1200x/0f/7c/bc/0f7cbc51a9bf9d460441589dbf4838c6.jpg',
       },
       {
         name: 'Anar Juice',
@@ -374,7 +374,7 @@ async function seed() {
         basePrice: 50,
         prices: [50, 80, 100, 120],
         category: 'Fruit Juices',
-        image: 'https://source.unsplash.com/gLb467qQVxU/500x500',
+        image: 'https://i.pinimg.com/1200x/27/9f/4d/279f4d5c03133d3beacff0c8755b2134.jpg',
       },
       {
         name: 'Vegetable Juice',
@@ -400,7 +400,7 @@ async function seed() {
         basePrice: 40,
         prices: [40, 50, 60, 70],
         category: 'Shakes',
-        image: 'https://source.unsplash.com/y0KwfCF8h-4/500x500',
+        image: 'https://i.pinimg.com/736x/7b/09/63/7b096395683cdf1111cdcb6c47229225.jpg',
       },
       {
         name: 'Khajoor Banana Mix',
@@ -498,7 +498,7 @@ async function seed() {
         basePrice: 40,
         prices: [40, 50, 60, 70],
         category: 'Special',
-        image: 'https://source.unsplash.com/0QMiCaiK650/500x500',
+        image: 'https://i.pinimg.com/1200x/41/0b/b6/410bb6567b3b06e3e97920d32ebb4340.jpg',
       },
       {
         name: 'Oreo Shake',
