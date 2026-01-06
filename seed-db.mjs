@@ -363,7 +363,7 @@ async function seed() {
         basePrice: 40,
         prices: [40, 50, 60, 70],
         category: 'Shakes',
-        image: 'https://images.unsplash.com/photo-1553787499-6f9133860278?w=500&h=500&fit=crop',
+        image: 'https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?w=500&h=500&fit=crop',
       },
       {
         name: 'Chocolate Shake',
@@ -387,7 +387,7 @@ async function seed() {
         basePrice: 40,
         prices: [40, 50, 60, 70],
         category: 'Shakes',
-        image: 'https://images.unsplash.com/photo-1544252890-c3e95e867a2b?w=500&h=500&fit=crop',
+        image: 'https://images.unsplash.com/photo-1497534446932-c925b458314e?w=500&h=500&fit=crop',
       },
       {
         name: 'Vanilla Shake',
@@ -403,7 +403,7 @@ async function seed() {
         basePrice: 40,
         prices: [40, 50, 60, 70],
         category: 'Shakes',
-        image: 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=500&h=500&fit=crop',
+        image: 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=500&h=500&fit=crop',
       },
       {
         name: 'Kiwi Shake',
@@ -411,7 +411,7 @@ async function seed() {
         basePrice: 40,
         prices: [40, 50, 60, 70],
         category: 'Shakes',
-        image: 'https://images.unsplash.com/photo-1638176066666-ffb2f013c7dd?w=500&h=500&fit=crop',
+        image: 'https://images.unsplash.com/photo-1602526429747-ac387a91d43b?w=500&h=500&fit=crop',
       },
       
       // ========== SPECIAL DRINKS ==========
@@ -429,7 +429,7 @@ async function seed() {
         basePrice: 50,
         prices: [50, 60, 70, 80],
         category: 'Special',
-        image: 'https://images.unsplash.com/photo-1579954115545-a95591f28bfc?w=500&h=500&fit=crop',
+        image: 'https://images.unsplash.com/photo-1577805947697-89e18249d767?w=500&h=500&fit=crop',
       },
       {
         name: 'Kesar Badam',
@@ -437,7 +437,7 @@ async function seed() {
         basePrice: 40,
         prices: [40, 50, 60, 70],
         category: 'Special',
-        image: 'https://images.unsplash.com/photo-1579954115545-a95591f28bfc?w=500&h=500&fit=crop',
+        image: 'https://images.unsplash.com/photo-1571942676516-bcab84649e44?w=500&h=500&fit=crop',
       },
       {
         name: 'Kesar Pista',
@@ -445,7 +445,7 @@ async function seed() {
         basePrice: 40,
         prices: [40, 50, 60, 70],
         category: 'Special',
-        image: 'https://images.unsplash.com/photo-1579954115545-a95591f28bfc?w=500&h=500&fit=crop',
+        image: 'https://images.unsplash.com/photo-1587049633312-d628ae50a8ae?w=500&h=500&fit=crop',
       },
       {
         name: 'Black Currant',
@@ -453,7 +453,7 @@ async function seed() {
         basePrice: 40,
         prices: [40, 50, 60, 70],
         category: 'Special',
-        image: 'https://images.unsplash.com/photo-1553177595-4de2bb0842b9?w=500&h=500&fit=crop',
+        image: 'https://images.unsplash.com/photo-1505252585461-04db1eb84625?w=500&h=500&fit=crop',
       },
       {
         name: 'Blueberry Shake',
@@ -461,7 +461,7 @@ async function seed() {
         basePrice: 40,
         prices: [40, 50, 60, 70],
         category: 'Special',
-        image: 'https://images.unsplash.com/photo-1553177595-4de2bb0842b9?w=500&h=500&fit=crop',
+        image: 'https://images.unsplash.com/photo-1432457990754-c8b5f21f969c?w=500&h=500&fit=crop',
       },
       {
         name: 'Oreo Shake',
@@ -469,7 +469,7 @@ async function seed() {
         basePrice: 40,
         prices: [40, 50, 60, 70],
         category: 'Special',
-        image: 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=500&h=500&fit=crop',
+        image: 'https://images.unsplash.com/photo-1619158401201-8fa932695178?w=500&h=500&fit=crop',
       },
       {
         name: 'Badam Shake',
@@ -477,7 +477,7 @@ async function seed() {
         basePrice: 40,
         prices: [40, 50, 60, 70],
         category: 'Special',
-        image: 'https://images.unsplash.com/photo-1579954115545-a95591f28bfc?w=500&h=500&fit=crop',
+        image: 'https://images.unsplash.com/photo-1626078299536-4a0e54bff7c6?w=500&h=500&fit=crop',
       },
       {
         name: 'Traffic Jam',
