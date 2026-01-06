@@ -271,7 +271,7 @@ async function seed() {
     // Items to delete (removed from menu)
     const itemsToDelete = ['Mousmi Juice', 'Pineapple Shake'];
     
-    // Always update images and delete removed items
+    // Always update images, fix add-ons, and delete removed items
     if (existingItems[0].count > 0) {
       console.log('⚡ Updating menu item images...');
       for (const item of imageUpdates) {
@@ -281,6 +281,19 @@ async function seed() {
         );
       }
       console.log('✓ Menu images updated');
+      
+      // Fix duplicate add-ons - delete all and re-insert with correct prices
+      console.log('🔧 Fixing add-ons (removing duplicates, updating prices)...');
+      await connection.execute('DELETE FROM addOns');
+      await connection.execute(
+        'INSERT INTO addOns (name, price, isAvailable) VALUES (?, ?, 1)',
+        ['Ice Cream', 15]
+      );
+      await connection.execute(
+        'INSERT INTO addOns (name, price, isAvailable) VALUES (?, ?, 1)',
+        ['Honey', 10]
+      );
+      console.log('✓ Add-ons fixed: Ice Cream ₹15, Honey ₹10');
       
       // Delete removed items
       console.log('🗑️ Removing discontinued items...');
@@ -326,15 +339,19 @@ async function seed() {
     }
     console.log('✓ Sizes added');
 
-    // Insert add-ons (only Ice Cream and Honey)
+    // Clean up duplicate add-ons and update prices
+    // First, delete all add-ons and re-insert with correct prices
+    await connection.execute('DELETE FROM addOns');
+    
+    // Insert add-ons with updated prices (Ice Cream: ₹15, Honey: ₹10)
     const addOns = [
-      { name: 'Ice Cream', price: 30 },
-      { name: 'Honey', price: 15 },
+      { name: 'Ice Cream', price: 15 },
+      { name: 'Honey', price: 10 },
     ];
 
     for (const addOn of addOns) {
       await connection.execute(
-        'INSERT IGNORE INTO addOns (name, price, isAvailable) VALUES (?, ?, 1)',
+        'INSERT INTO addOns (name, price, isAvailable) VALUES (?, ?, 1)',
         [addOn.name, addOn.price]
       );
     }
