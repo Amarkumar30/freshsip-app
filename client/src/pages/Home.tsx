@@ -39,16 +39,11 @@ export default function Home() {
           </p>
           
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <div className="flex justify-center">
             <Link href="/menu">
               <Button size="lg" className="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-8 h-14 text-base rounded-full shadow-xl shadow-orange-200/60 transition-all hover:shadow-2xl hover:scale-105">
                 <ShoppingCart className="w-5 h-5 mr-2" />
                 View Menu
-              </Button>
-            </Link>
-            <Link href="/order-tracking">
-              <Button variant="outline" size="lg" className="border-2 border-orange-200 text-orange-600 hover:bg-orange-50 font-semibold px-8 h-14 text-base rounded-full">
-                Track Order
               </Button>
             </Link>
           </div>
