@@ -1,326 +1,278 @@
-import mysql from 'mysql2/promise';
+import pg from 'pg';
 
-// Parse DATABASE_URL properly
-const dbUrl = process.env.DATABASE_URL || 'mysql://freshsip_user:freshsip_password@localhost:3306/freshsip';
-const urlObj = new URL(dbUrl);
+const { Pool } = pg;
 
-const connection = await mysql.createConnection({
-  host: urlObj.hostname,
-  port: urlObj.port || 3306,
-  user: urlObj.username,
-  password: urlObj.password,
-  database: urlObj.pathname.slice(1),
+// Parse DATABASE_URL for PostgreSQL
+const dbUrl = process.env.DATABASE_URL || 'postgresql://freshsip_user:freshsip_password@localhost:5432/freshsip';
+
+const pool = new Pool({
+  connectionString: dbUrl,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
 });
 
 async function createTables() {
   console.log('Creating tables if they do not exist...');
-
-  // Create sizes table
-  await connection.execute(`
-    CREATE TABLE IF NOT EXISTS sizes (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      name VARCHAR(50) NOT NULL UNIQUE,
-      priceMultiplier DECIMAL(5,2) NOT NULL,
-      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-  // Create addOns table
-  await connection.execute(`
-    CREATE TABLE IF NOT EXISTS addOns (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      name VARCHAR(255) NOT NULL,
-      price DECIMAL(10,2) NOT NULL,
-      isAvailable BOOLEAN DEFAULT TRUE NOT NULL,
-      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    )
-  `);
-
-  // Create menuItems table
-  await connection.execute(`
-    CREATE TABLE IF NOT EXISTS menuItems (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      name VARCHAR(255) NOT NULL,
-      description TEXT,
-      basePrice DECIMAL(10,2) NOT NULL,
-      image TEXT,
-      category VARCHAR(100),
-      isAvailable BOOLEAN DEFAULT TRUE NOT NULL,
-      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      INDEX idx_menuItems_category (category),
-      INDEX idx_menuItems_isAvailable (isAvailable)
-    )
-  `);
-
-  // Create users table
-  await connection.execute(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      openId VARCHAR(64) NOT NULL UNIQUE,
-      name TEXT,
-      email VARCHAR(320),
-      loginMethod VARCHAR(64),
-      role ENUM('user', 'admin') DEFAULT 'user' NOT NULL,
-      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-      updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,
-      lastSignedIn TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-      INDEX idx_users_openId (openId),
-      INDEX idx_users_role (role)
-    )
-  `);
-
-  // Create orders table
-  await connection.execute(`
-    CREATE TABLE IF NOT EXISTS orders (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      orderNumber VARCHAR(50) NOT NULL UNIQUE,
-      userId INT,
-      customerName VARCHAR(255) NOT NULL,
-      customerPhone VARCHAR(20) DEFAULT NULL,
-      status ENUM('pending', 'confirmed', 'preparing', 'ready', 'completed', 'cancelled') DEFAULT 'pending' NOT NULL,
-      totalAmount DECIMAL(10,2) NOT NULL,
-      paymentStatus ENUM('pending', 'completed', 'failed', 'refunded') DEFAULT 'pending' NOT NULL,
-      paymentMethod VARCHAR(50) DEFAULT 'razorpay',
-      razorpayOrderId VARCHAR(255),
-      razorpayPaymentId VARCHAR(255),
-      notes TEXT,
-      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-      updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,
-      completedAt TIMESTAMP NULL,
-      INDEX idx_orders_status (status),
-      INDEX idx_orders_orderNumber (orderNumber),
-      INDEX idx_orders_paymentStatus (paymentStatus),
-      INDEX idx_orders_razorpayOrderId (razorpayOrderId)
-    )
-  `);
-
-  // Fix customerPhone column to allow NULL (for existing tables)
-  try {
-    await connection.execute(`ALTER TABLE orders MODIFY COLUMN customerPhone VARCHAR(20) DEFAULT NULL`);
-    console.log('  Fixed customerPhone column to allow NULL');
-  } catch (e) { /* Column already correct */ }
-
-  // Add missing columns if table already exists (for migrations)
-  try {
-    await connection.execute(`ALTER TABLE orders ADD COLUMN paymentStatus ENUM('pending', 'completed', 'failed', 'refunded') DEFAULT 'pending' NOT NULL AFTER totalAmount`);
-    console.log('  Added paymentStatus column');
-  } catch (e) { /* Column already exists */ }
+  const client = await pool.connect();
   
   try {
-    await connection.execute(`ALTER TABLE orders ADD COLUMN paymentMethod VARCHAR(50) DEFAULT 'razorpay' AFTER paymentStatus`);
-    console.log('  Added paymentMethod column');
-  } catch (e) { /* Column already exists */ }
-  
-  try {
-    await connection.execute(`ALTER TABLE orders ADD COLUMN razorpayOrderId VARCHAR(255) AFTER paymentMethod`);
-    console.log('  Added razorpayOrderId column');
-  } catch (e) { /* Column already exists */ }
-  
-  try {
-    await connection.execute(`ALTER TABLE orders ADD COLUMN razorpayPaymentId VARCHAR(255) AFTER razorpayOrderId`);
-    console.log('  Added razorpayPaymentId column');
-  } catch (e) { /* Column already exists */ }
-  
-  try {
-    await connection.execute(`ALTER TABLE orders ADD COLUMN completedAt TIMESTAMP NULL AFTER updatedAt`);
-    console.log('  Added completedAt column');
-  } catch (e) { /* Column already exists */ }
+    // Create enums first (PostgreSQL uses enums differently)
+    await client.query(`
+      DO $$ BEGIN
+        CREATE TYPE role AS ENUM ('user', 'admin');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+    
+    await client.query(`
+      DO $$ BEGIN
+        CREATE TYPE order_status AS ENUM ('pending', 'confirmed', 'preparing', 'ready', 'completed', 'cancelled');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+    
+    await client.query(`
+      DO $$ BEGIN
+        CREATE TYPE payment_status AS ENUM ('pending', 'completed', 'failed', 'refunded');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
 
-  // Create orderItems table
-  await connection.execute(`
-    CREATE TABLE IF NOT EXISTS orderItems (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      orderId INT NOT NULL,
-      menuItemId INT NOT NULL,
-      menuItemName VARCHAR(255),
-      sizeId INT NOT NULL,
-      sizeName VARCHAR(50),
-      quantity INT DEFAULT 1 NOT NULL,
-      itemPrice DECIMAL(10,2) NOT NULL,
-      addOnsData JSON,
-      addOnsTotal DECIMAL(10,2) DEFAULT 0.00,
-      specialInstructions TEXT,
-      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
-    )
-  `);
+    // Create sizes table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS sizes (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(50) NOT NULL UNIQUE,
+        "priceMultiplier" DECIMAL(5,2) NOT NULL,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
 
-  // Add missing columns to orderItems if table already exists
-  try {
-    await connection.execute(`ALTER TABLE orderItems ADD COLUMN menuItemName VARCHAR(255) AFTER menuItemId`);
-    console.log('  Added menuItemName column to orderItems');
-  } catch (e) { /* Column already exists */ }
-  
-  try {
-    await connection.execute(`ALTER TABLE orderItems ADD COLUMN sizeName VARCHAR(50) AFTER sizeId`);
-    console.log('  Added sizeName column to orderItems');
-  } catch (e) { /* Column already exists */ }
-  
-  try {
-    await connection.execute(`ALTER TABLE orderItems ADD COLUMN itemPrice DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER quantity`);
-    console.log('  Added itemPrice column to orderItems');
-  } catch (e) { /* Column already exists */ }
-  
-  try {
-    await connection.execute(`ALTER TABLE orderItems ADD COLUMN addOnsData JSON AFTER itemPrice`);
-    console.log('  Added addOnsData column to orderItems');
-  } catch (e) { /* Column already exists */ }
-  
-  try {
-    await connection.execute(`ALTER TABLE orderItems ADD COLUMN addOnsTotal DECIMAL(10,2) DEFAULT 0.00 AFTER addOnsData`);
-    console.log('  Added addOnsTotal column to orderItems');
-  } catch (e) { /* Column already exists */ }
-  
-  try {
-    await connection.execute(`ALTER TABLE orderItems ADD COLUMN specialInstructions TEXT AFTER addOnsTotal`);
-    console.log('  Added specialInstructions column to orderItems');
-  } catch (e) { /* Column already exists */ }
+    // Create addOns table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS "addOns" (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        price DECIMAL(10,2) NOT NULL,
+        "isAvailable" BOOLEAN DEFAULT TRUE NOT NULL,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
 
-  // Rename old columns if they exist (migration from old schema)
-  try {
-    await connection.execute(`ALTER TABLE orderItems CHANGE COLUMN unitPrice itemPrice DECIMAL(10,2) NOT NULL`);
-    console.log('  Renamed unitPrice to itemPrice');
-  } catch (e) { /* Column doesn't exist or already renamed */ }
-  
-  try {
-    await connection.execute(`ALTER TABLE orderItems CHANGE COLUMN addOnIds addOnsData JSON`);
-    console.log('  Renamed addOnIds to addOnsData');
-  } catch (e) { /* Column doesn't exist or already renamed */ }
+    // Create menuItems table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS "menuItems" (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        "basePrice" DECIMAL(10,2) NOT NULL,
+        image TEXT,
+        category VARCHAR(100),
+        "isAvailable" BOOLEAN DEFAULT TRUE NOT NULL,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    // Create indexes on menuItems
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_menuItems_category ON "menuItems"(category)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_menuItems_isAvailable ON "menuItems"("isAvailable")`);
 
-  // Drop old columns if they still exist after adding new ones
-  try {
-    await connection.execute(`ALTER TABLE orderItems DROP COLUMN unitPrice`);
-    console.log('  Dropped old unitPrice column');
-  } catch (e) { /* Column doesn't exist */ }
-  
-  try {
-    await connection.execute(`ALTER TABLE orderItems DROP COLUMN addOnIds`);
-    console.log('  Dropped old addOnIds column');
-  } catch (e) { /* Column doesn't exist */ }
+    // Create users table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        "openId" VARCHAR(64) NOT NULL UNIQUE,
+        name TEXT,
+        email VARCHAR(320),
+        "loginMethod" VARCHAR(64),
+        role role DEFAULT 'user' NOT NULL,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        "lastSignedIn" TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+      )
+    `);
+    
+    // Create indexes on users
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_users_openId ON users("openId")`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)`);
 
-  // Create orderStatusHistory table (for tracking status changes)
-  await connection.execute(`
-    CREATE TABLE IF NOT EXISTS orderStatusHistory (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      orderId INT NOT NULL,
-      oldStatus VARCHAR(50) NOT NULL,
-      newStatus VARCHAR(50) NOT NULL,
-      changedBy VARCHAR(255),
-      timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-      INDEX idx_orderStatusHistory_orderId (orderId)
-    )
-  `);
+    // Create orders table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS orders (
+        id SERIAL PRIMARY KEY,
+        "orderNumber" VARCHAR(50) NOT NULL UNIQUE,
+        "userId" INTEGER,
+        "customerName" VARCHAR(255) NOT NULL,
+        "customerPhone" VARCHAR(20) DEFAULT NULL,
+        "totalAmount" DECIMAL(10,2) NOT NULL,
+        status order_status DEFAULT 'pending' NOT NULL,
+        "paymentStatus" payment_status DEFAULT 'pending' NOT NULL,
+        "paymentMethod" VARCHAR(50) DEFAULT 'razorpay',
+        "razorpayOrderId" VARCHAR(255),
+        "razorpayPaymentId" VARCHAR(255),
+        notes TEXT,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        "completedAt" TIMESTAMP NULL
+      )
+    `);
+    
+    // Create indexes on orders
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_orders_orderNumber ON orders("orderNumber")`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_orders_paymentStatus ON orders("paymentStatus")`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_orders_createdAt ON orders("createdAt")`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_orders_customerPhone ON orders("customerPhone")`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_orders_updatedAt ON orders("updatedAt")`);
 
-  // Create menuItemPrices table for specific size pricing
-  await connection.execute(`
-    CREATE TABLE IF NOT EXISTS menuItemPrices (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      menuItemId INT NOT NULL,
-      sizeId INT NOT NULL,
-      price DECIMAL(10,2) NOT NULL,
-      isAvailable BOOLEAN DEFAULT TRUE NOT NULL,
-      UNIQUE KEY unique_item_size (menuItemId, sizeId),
-      INDEX idx_menuItemPrices_menuItemId (menuItemId)
-    )
-  `);
+    // Create orderItems table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS "orderItems" (
+        id SERIAL PRIMARY KEY,
+        "orderId" INTEGER NOT NULL,
+        "menuItemId" INTEGER NOT NULL,
+        "menuItemName" VARCHAR(255),
+        "sizeId" INTEGER NOT NULL,
+        "sizeName" VARCHAR(50),
+        quantity INTEGER DEFAULT 1 NOT NULL,
+        "itemPrice" DECIMAL(10,2) NOT NULL,
+        "addOnsData" JSONB,
+        "addOnsTotal" DECIMAL(10,2) DEFAULT 0.00,
+        "specialInstructions" TEXT,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+      )
+    `);
+    
+    // Create indexes on orderItems
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_orderItems_orderId ON "orderItems"("orderId")`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_orderItems_menuItemId ON "orderItems"("menuItemId")`);
 
-  console.log('✓ Tables created/verified');
+    // Create orderStatusHistory table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS "orderStatusHistory" (
+        id SERIAL PRIMARY KEY,
+        "orderId" INTEGER NOT NULL,
+        "oldStatus" VARCHAR(50),
+        "newStatus" VARCHAR(50) NOT NULL,
+        "changedBy" INTEGER,
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+      )
+    `);
+    
+    // Create indexes on orderStatusHistory
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_orderStatusHistory_orderId ON "orderStatusHistory"("orderId")`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_orderStatusHistory_timestamp ON "orderStatusHistory"(timestamp)`);
+
+    // Create menuItemPrices table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS "menuItemPrices" (
+        id SERIAL PRIMARY KEY,
+        "menuItemId" INTEGER NOT NULL,
+        "sizeId" INTEGER NOT NULL,
+        price DECIMAL(10,2) NOT NULL,
+        "isAvailable" BOOLEAN DEFAULT TRUE NOT NULL,
+        UNIQUE("menuItemId", "sizeId")
+      )
+    `);
+    
+    // Create index on menuItemPrices
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_menuItemPrices_menuItemId ON "menuItemPrices"("menuItemId")`);
+
+    console.log('✓ Tables created/verified');
+  } finally {
+    client.release();
+  }
 }
 
 async function seed() {
+  const client = await pool.connect();
+  
   try {
-    console.log('=== FreshSip Database Seeding ===');
+    console.log('=== FreshSip Database Seeding (PostgreSQL) ===');
     console.log('Database URL:', dbUrl.replace(/:[^:@]+@/, ':****@'));
     
     // Create tables first
     await createTables();
 
-    // Always update images for existing menu items (to fix image issues)
-    // Then check if full reseed is needed
-    const [existingItems] = await connection.execute('SELECT COUNT(*) as count FROM menuItems');
-    const [existingPrices] = await connection.execute('SELECT COUNT(*) as count FROM menuItemPrices').catch(() => [[{ count: 0 }]]);
-    
     // Define image updates - always apply these (USER PROVIDED IMAGES)
     const imageUpdates = [
       { name: 'Mix Fruit Juice', image: 'https://images.unsplash.com/photo-1622597467836-f3285f2131b8?w=500&h=500&fit=crop' },
       { name: 'Orange Juice', image: 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=500&h=500&fit=crop' },
-      { name: 'Pineapple Juice', image: 'https://i.pinimg.com/1200x/0f/7c/bc/0f7cbc51a9bf9d460441589dbf4838c6.jpg' }, // User provided Pinterest
-      { name: 'Anar Juice', image: 'https://i.pinimg.com/1200x/27/9f/4d/279f4d5c03133d3beacff0c8755b2134.jpg' }, // User provided Pinterest
+      { name: 'Pineapple Juice', image: 'https://i.pinimg.com/1200x/0f/7c/bc/0f7cbc51a9bf9d460441589dbf4838c6.jpg' },
+      { name: 'Anar Juice', image: 'https://i.pinimg.com/1200x/27/9f/4d/279f4d5c03133d3beacff0c8755b2134.jpg' },
       { name: 'Vegetable Juice', image: 'https://images.unsplash.com/photo-1610970881699-44a5587cabec?w=500&h=500&fit=crop' },
       { name: 'Mango Shake', image: 'https://images.unsplash.com/photo-1623065422902-30a2d299bbe4?w=500&h=500&fit=crop' },
-      { name: 'Banana Shake', image: 'https://i.pinimg.com/736x/7b/09/63/7b096395683cdf1111cdcb6c47229225.jpg' }, // User provided Pinterest
-      { name: 'Khajoor Banana Mix', image: 'https://i.pinimg.com/1200x/14/3e/4a/143e4a63ce443d6475a9083c80e63f17.jpg' }, // User provided Pinterest
+      { name: 'Banana Shake', image: 'https://i.pinimg.com/736x/7b/09/63/7b096395683cdf1111cdcb6c47229225.jpg' },
+      { name: 'Khajoor Banana Mix', image: 'https://i.pinimg.com/1200x/14/3e/4a/143e4a63ce443d6475a9083c80e63f17.jpg' },
       { name: 'Chocolate Shake', image: 'https://images.unsplash.com/photo-1541658016709-82535e94bc69?w=500&h=500&fit=crop' },
       { name: 'Strawberry Shake', image: 'https://images.unsplash.com/photo-1579954115563-e72bf1381629?w=500&h=500&fit=crop' },
       { name: 'Vanilla Shake', image: 'https://images.unsplash.com/photo-1568901839119-631418a3910d?w=500&h=500&fit=crop' },
       { name: 'Butter Scotch', image: 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=500&h=500&fit=crop' },
-      { name: 'Kiwi Shake', image: 'https://i.pinimg.com/736x/c5/9a/9b/c59a9bef524704c3fed0c7bb4647571d.jpg' }, // User provided Pinterest
+      { name: 'Kiwi Shake', image: 'https://i.pinimg.com/736x/c5/9a/9b/c59a9bef524704c3fed0c7bb4647571d.jpg' },
       { name: 'Cold Coffee', image: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=500&h=500&fit=crop' },
-      { name: 'Khajoor Shake', image: 'https://i.pinimg.com/1200x/30/cd/4b/30cd4b640c4f9bdd165297316ae6c614.jpg' }, // User provided Pinterest
-      { name: 'Kesar Badam', image: 'https://i.pinimg.com/736x/a5/36/62/a5366248c1363627ae47b9d631a7626f.jpg' }, // User provided Pinterest
-      { name: 'Kesar Pista', image: 'https://i.pinimg.com/736x/3f/a4/64/3fa464c9e546fc06437bff4ec77f96b1.jpg' }, // User provided Pinterest
-      { name: 'Black Currant', image: 'https://i.pinimg.com/736x/a6/64/ed/a664edee9ad699c21badfae952a0e548.jpg' }, // User provided Pinterest
-      { name: 'Blueberry Shake', image: 'https://i.pinimg.com/1200x/41/0b/b6/410bb6567b3b06e3e97920d32ebb4340.jpg' }, // User provided Pinterest
+      { name: 'Khajoor Shake', image: 'https://i.pinimg.com/1200x/30/cd/4b/30cd4b640c4f9bdd165297316ae6c614.jpg' },
+      { name: 'Kesar Badam', image: 'https://i.pinimg.com/736x/a5/36/62/a5366248c1363627ae47b9d631a7626f.jpg' },
+      { name: 'Kesar Pista', image: 'https://i.pinimg.com/736x/3f/a4/64/3fa464c9e546fc06437bff4ec77f96b1.jpg' },
+      { name: 'Black Currant', image: 'https://i.pinimg.com/736x/a6/64/ed/a664edee9ad699c21badfae952a0e548.jpg' },
+      { name: 'Blueberry Shake', image: 'https://i.pinimg.com/1200x/41/0b/b6/410bb6567b3b06e3e97920d32ebb4340.jpg' },
       { name: 'Oreo Shake', image: 'https://images.unsplash.com/photo-1619158401201-8fa932695178?w=500&h=500&fit=crop' },
-      { name: 'Badam Shake', image: 'https://i.pinimg.com/736x/c7/b5/b1/c7b5b10e2cddec350fe8fa38e872e6c3.jpg' }, // User provided - Pinterest
-      { name: 'Traffic Jam', image: 'https://i.pinimg.com/1200x/27/79/47/277947a4d8322924af89cb5bbc9e831f.jpg' }, // User provided - Pinterest
+      { name: 'Badam Shake', image: 'https://i.pinimg.com/736x/c7/b5/b1/c7b5b10e2cddec350fe8fa38e872e6c3.jpg' },
+      { name: 'Traffic Jam', image: 'https://i.pinimg.com/1200x/27/79/47/277947a4d8322924af89cb5bbc9e831f.jpg' },
     ];
     
     // Items to delete (removed from menu)
     const itemsToDelete = ['Mousmi Juice', 'Pineapple Shake'];
+
+    // Check if data exists
+    const existingItemsResult = await client.query('SELECT COUNT(*) as count FROM "menuItems"');
+    const existingPricesResult = await client.query('SELECT COUNT(*) as count FROM "menuItemPrices"').catch(() => ({ rows: [{ count: 0 }] }));
+    
+    const existingItems = parseInt(existingItemsResult.rows[0].count);
+    const existingPrices = parseInt(existingPricesResult.rows[0].count);
     
     // Always update images, fix add-ons, and delete removed items
-    if (existingItems[0].count > 0) {
+    if (existingItems > 0) {
       console.log('⚡ Updating menu item images...');
       for (const item of imageUpdates) {
-        await connection.execute(
-          'UPDATE menuItems SET image = ? WHERE name = ?',
-          [item.image, item.name]
-        );
+        await client.query('UPDATE "menuItems" SET image = $1 WHERE name = $2', [item.image, item.name]);
       }
       console.log('✓ Menu images updated');
       
       // Fix duplicate add-ons - delete all and re-insert with correct prices
       console.log('🔧 Fixing add-ons (removing duplicates, updating prices)...');
-      await connection.execute('DELETE FROM addOns');
-      await connection.execute(
-        'INSERT INTO addOns (name, price, isAvailable) VALUES (?, ?, 1)',
-        ['Ice Cream', 15]
-      );
-      await connection.execute(
-        'INSERT INTO addOns (name, price, isAvailable) VALUES (?, ?, 1)',
-        ['Honey', 10]
-      );
+      await client.query('DELETE FROM "addOns"');
+      await client.query('INSERT INTO "addOns" (name, price, "isAvailable") VALUES ($1, $2, true)', ['Ice Cream', 15]);
+      await client.query('INSERT INTO "addOns" (name, price, "isAvailable") VALUES ($1, $2, true)', ['Honey', 10]);
       console.log('✓ Add-ons fixed: Ice Cream ₹15, Honey ₹10');
       
       // Delete removed items
       console.log('🗑️ Removing discontinued items...');
       for (const itemName of itemsToDelete) {
-        // First delete from menuItemPrices
-        const [itemRows] = await connection.execute('SELECT id FROM menuItems WHERE name = ?', [itemName]);
-        if (itemRows.length > 0) {
-          await connection.execute('DELETE FROM menuItemPrices WHERE menuItemId = ?', [itemRows[0].id]);
-          await connection.execute('DELETE FROM menuItems WHERE id = ?', [itemRows[0].id]);
+        const itemResult = await client.query('SELECT id FROM "menuItems" WHERE name = $1', [itemName]);
+        if (itemResult.rows.length > 0) {
+          await client.query('DELETE FROM "menuItemPrices" WHERE "menuItemId" = $1', [itemResult.rows[0].id]);
+          await client.query('DELETE FROM "menuItems" WHERE id = $1', [itemResult.rows[0].id]);
           console.log(`  Removed: ${itemName}`);
         }
       }
     }
     
-    if (existingItems[0].count > 0 && existingPrices[0].count > 0) {
+    if (existingItems > 0 && existingPrices > 0) {
       console.log('✓ Data already seeded with prices');
       console.log('\n✅ Database ready!');
-      await connection.end();
       return;
     }
     
     // If items exist but no prices, clear items to reseed with prices
-    if (existingItems[0].count > 0 && existingPrices[0].count === 0) {
+    if (existingItems > 0 && existingPrices === 0) {
       console.log('⚠ Menu items exist but no prices. Clearing for reseed...');
-      await connection.execute('DELETE FROM menuItemPrices');
-      await connection.execute('DELETE FROM menuItems');
-      await connection.execute('DELETE FROM sizes');
+      await client.query('DELETE FROM "menuItemPrices"');
+      await client.query('DELETE FROM "menuItems"');
+      await client.query('DELETE FROM sizes');
     }
 
     // Insert sizes
@@ -332,16 +284,15 @@ async function seed() {
     ];
 
     for (const size of sizes) {
-      await connection.execute(
-        'INSERT IGNORE INTO sizes (name, priceMultiplier) VALUES (?, ?)',
+      await client.query(
+        'INSERT INTO sizes (name, "priceMultiplier") VALUES ($1, $2) ON CONFLICT (name) DO NOTHING',
         [size.name, size.priceMultiplier]
       );
     }
     console.log('✓ Sizes added');
 
     // Clean up duplicate add-ons and update prices
-    // First, delete all add-ons and re-insert with correct prices
-    await connection.execute('DELETE FROM addOns');
+    await client.query('DELETE FROM "addOns"');
     
     // Insert add-ons with updated prices (Ice Cream: ₹15, Honey: ₹10)
     const addOns = [
@@ -350,222 +301,67 @@ async function seed() {
     ];
 
     for (const addOn of addOns) {
-      await connection.execute(
-        'INSERT INTO addOns (name, price, isAvailable) VALUES (?, ?, 1)',
+      await client.query(
+        'INSERT INTO "addOns" (name, price, "isAvailable") VALUES ($1, $2, true)',
         [addOn.name, addOn.price]
       );
     }
     console.log('✓ Add-ons added');
 
     // Insert menu items with exact pricing from price chart
-    // Prices: [Small, Medium, Large, Ex-Large] - null means not available in that size
     const menuItems = [
       // ========== FRUIT JUICES ==========
-      {
-        name: 'Mix Fruit Juice',
-        description: 'A delightful blend of seasonal fruits bursting with natural flavors',
-        basePrice: 40,
-        prices: [40, 50, 60, 70],
-        category: 'Fruit Juices',
-        image: 'https://images.unsplash.com/photo-1622597467836-f3285f2131b8?w=500&h=500&fit=crop',
-      },
-      {
-        name: 'Orange Juice',
-        description: 'Fresh squeezed orange juice, bursting with vitamin C',
-        basePrice: 40,
-        prices: [40, 50, 60, 70],
-        category: 'Fruit Juices',
-        image: 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=500&h=500&fit=crop',
-      },
-      {
-        name: 'Pineapple Juice',
-        description: 'Tropical pineapple juice with a perfect tangy-sweet balance',
-        basePrice: 40,
-        prices: [40, 50, 60, 70],
-        category: 'Fruit Juices',
-        image: 'https://i.pinimg.com/1200x/0f/7c/bc/0f7cbc51a9bf9d460441589dbf4838c6.jpg',
-      },
-      {
-        name: 'Anar Juice',
-        description: 'Ruby red antioxidant-rich pomegranate juice for health lovers',
-        basePrice: 50,
-        prices: [50, 80, 100, 120],
-        category: 'Fruit Juices',
-        image: 'https://i.pinimg.com/1200x/27/9f/4d/279f4d5c03133d3beacff0c8755b2134.jpg',
-      },
-      {
-        name: 'Vegetable Juice',
-        description: 'Healthy blend of fresh vegetables for nutrition boost',
-        basePrice: 40,
-        prices: [40, 50, 60, 70],
-        category: 'Fruit Juices',
-        image: 'https://images.unsplash.com/photo-1610970881699-44a5587cabec?w=500&h=500&fit=crop',
-      },
+      { name: 'Mix Fruit Juice', description: 'A delightful blend of seasonal fruits bursting with natural flavors', basePrice: 40, prices: [40, 50, 60, 70], category: 'Fruit Juices', image: 'https://images.unsplash.com/photo-1622597467836-f3285f2131b8?w=500&h=500&fit=crop' },
+      { name: 'Orange Juice', description: 'Fresh squeezed orange juice, bursting with vitamin C', basePrice: 40, prices: [40, 50, 60, 70], category: 'Fruit Juices', image: 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=500&h=500&fit=crop' },
+      { name: 'Pineapple Juice', description: 'Tropical pineapple juice with a perfect tangy-sweet balance', basePrice: 40, prices: [40, 50, 60, 70], category: 'Fruit Juices', image: 'https://i.pinimg.com/1200x/0f/7c/bc/0f7cbc51a9bf9d460441589dbf4838c6.jpg' },
+      { name: 'Anar Juice', description: 'Ruby red antioxidant-rich pomegranate juice for health lovers', basePrice: 50, prices: [50, 80, 100, 120], category: 'Fruit Juices', image: 'https://i.pinimg.com/1200x/27/9f/4d/279f4d5c03133d3beacff0c8755b2134.jpg' },
+      { name: 'Vegetable Juice', description: 'Healthy blend of fresh vegetables for nutrition boost', basePrice: 40, prices: [40, 50, 60, 70], category: 'Fruit Juices', image: 'https://images.unsplash.com/photo-1610970881699-44a5587cabec?w=500&h=500&fit=crop' },
       
       // ========== SHAKES ==========
-      {
-        name: 'Mango Shake',
-        description: 'Thick and creamy mango milkshake, summer in a glass',
-        basePrice: 40,
-        prices: [40, 50, 60, 70],
-        category: 'Shakes',
-        image: 'https://images.unsplash.com/photo-1623065422902-30a2d299bbe4?w=500&h=500&fit=crop',
-      },
-      {
-        name: 'Banana Shake',
-        description: 'Classic banana milkshake, creamy and naturally sweet',
-        basePrice: 40,
-        prices: [40, 50, 60, 70],
-        category: 'Shakes',
-        image: 'https://i.pinimg.com/736x/7b/09/63/7b096395683cdf1111cdcb6c47229225.jpg',
-      },
-      {
-        name: 'Khajoor Banana Mix',
-        description: 'Nutritious blend of dates and banana, naturally sweet',
-        basePrice: 40,
-        prices: [40, 50, 60, 70],
-        category: 'Shakes',
-        image: 'https://i.pinimg.com/1200x/14/3e/4a/143e4a63ce443d6475a9083c80e63f17.jpg',
-      },
-      {
-        name: 'Chocolate Shake',
-        description: 'Rich and decadent chocolate milkshake for chocolate lovers',
-        basePrice: 40,
-        prices: [40, 50, 60, 70],
-        category: 'Shakes',
-        image: 'https://images.unsplash.com/photo-1541658016709-82535e94bc69?w=500&h=500&fit=crop',
-      },
-      {
-        name: 'Strawberry Shake',
-        description: 'Luscious strawberry milkshake made with fresh strawberries',
-        basePrice: 40,
-        prices: [40, 50, 60, 70],
-        category: 'Shakes',
-        image: 'https://images.unsplash.com/photo-1579954115563-e72bf1381629?w=500&h=500&fit=crop',
-      },
-      {
-        name: 'Vanilla Shake',
-        description: 'Classic vanilla milkshake, smooth and creamy',
-        basePrice: 40,
-        prices: [40, 50, 60, 70],
-        category: 'Shakes',
-        image: 'https://images.unsplash.com/photo-1568901839119-631418a3910d?w=500&h=500&fit=crop',
-      },
-      {
-        name: 'Butter Scotch',
-        description: 'Buttery caramel flavored shake with crunchy bits',
-        basePrice: 40,
-        prices: [40, 50, 60, 70],
-        category: 'Shakes',
-        image: 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=500&h=500&fit=crop',
-      },
-      {
-        name: 'Kiwi Shake',
-        description: 'Refreshing kiwi milkshake with a tangy twist',
-        basePrice: 40,
-        prices: [40, 50, 60, 70],
-        category: 'Shakes',
-        image: 'https://i.pinimg.com/736x/c5/9a/9b/c59a9bef524704c3fed0c7bb4647571d.jpg',
-      },
+      { name: 'Mango Shake', description: 'Thick and creamy mango milkshake, summer in a glass', basePrice: 40, prices: [40, 50, 60, 70], category: 'Shakes', image: 'https://images.unsplash.com/photo-1623065422902-30a2d299bbe4?w=500&h=500&fit=crop' },
+      { name: 'Banana Shake', description: 'Classic banana milkshake, creamy and naturally sweet', basePrice: 40, prices: [40, 50, 60, 70], category: 'Shakes', image: 'https://i.pinimg.com/736x/7b/09/63/7b096395683cdf1111cdcb6c47229225.jpg' },
+      { name: 'Khajoor Banana Mix', description: 'Nutritious blend of dates and banana, naturally sweet', basePrice: 40, prices: [40, 50, 60, 70], category: 'Shakes', image: 'https://i.pinimg.com/1200x/14/3e/4a/143e4a63ce443d6475a9083c80e63f17.jpg' },
+      { name: 'Chocolate Shake', description: 'Rich and decadent chocolate milkshake for chocolate lovers', basePrice: 40, prices: [40, 50, 60, 70], category: 'Shakes', image: 'https://images.unsplash.com/photo-1541658016709-82535e94bc69?w=500&h=500&fit=crop' },
+      { name: 'Strawberry Shake', description: 'Luscious strawberry milkshake made with fresh strawberries', basePrice: 40, prices: [40, 50, 60, 70], category: 'Shakes', image: 'https://images.unsplash.com/photo-1579954115563-e72bf1381629?w=500&h=500&fit=crop' },
+      { name: 'Vanilla Shake', description: 'Classic vanilla milkshake, smooth and creamy', basePrice: 40, prices: [40, 50, 60, 70], category: 'Shakes', image: 'https://images.unsplash.com/photo-1568901839119-631418a3910d?w=500&h=500&fit=crop' },
+      { name: 'Butter Scotch', description: 'Buttery caramel flavored shake with crunchy bits', basePrice: 40, prices: [40, 50, 60, 70], category: 'Shakes', image: 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=500&h=500&fit=crop' },
+      { name: 'Kiwi Shake', description: 'Refreshing kiwi milkshake with a tangy twist', basePrice: 40, prices: [40, 50, 60, 70], category: 'Shakes', image: 'https://i.pinimg.com/736x/c5/9a/9b/c59a9bef524704c3fed0c7bb4647571d.jpg' },
       
       // ========== SPECIAL DRINKS ==========
-      {
-        name: 'Cold Coffee',
-        description: 'Refreshing iced coffee blended to perfection',
-        basePrice: 50,
-        prices: [null, 50, 80, 100], // No small size
-        category: 'Special',
-        image: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=500&h=500&fit=crop',
-      },
-      {
-        name: 'Khajoor Shake',
-        description: 'Rich date shake, naturally sweetened with premium dates',
-        basePrice: 50,
-        prices: [50, 60, 70, 80],
-        category: 'Special',
-        image: 'https://i.pinimg.com/1200x/30/cd/4b/30cd4b640c4f9bdd165297316ae6c614.jpg',
-      },
-      {
-        name: 'Kesar Badam',
-        description: 'Luxurious saffron almond shake, rich and aromatic',
-        basePrice: 40,
-        prices: [40, 50, 60, 70],
-        category: 'Special',
-        image: 'https://i.pinimg.com/736x/a5/36/62/a5366248c1363627ae47b9d631a7626f.jpg',
-      },
-      {
-        name: 'Kesar Pista',
-        description: 'Premium saffron pistachio shake, creamy delight',
-        basePrice: 40,
-        prices: [40, 50, 60, 70],
-        category: 'Special',
-        image: 'https://i.pinimg.com/736x/3f/a4/64/3fa464c9e546fc06437bff4ec77f96b1.jpg',
-      },
-      {
-        name: 'Black Currant',
-        description: 'Tangy black currant shake with berry goodness',
-        basePrice: 40,
-        prices: [40, 50, 60, 70],
-        category: 'Special',
-        image: 'https://i.pinimg.com/736x/a6/64/ed/a664edee9ad699c21badfae952a0e548.jpg',
-      },
-      {
-        name: 'Blueberry Shake',
-        description: 'Antioxidant-rich blueberry milkshake',
-        basePrice: 40,
-        prices: [40, 50, 60, 70],
-        category: 'Special',
-        image: 'https://i.pinimg.com/1200x/41/0b/b6/410bb6567b3b06e3e97920d32ebb4340.jpg',
-      },
-      {
-        name: 'Oreo Shake',
-        description: 'Indulgent cookies and cream shake topped with crushed Oreos',
-        basePrice: 40,
-        prices: [40, 50, 60, 70],
-        category: 'Special',
-        image: 'https://images.unsplash.com/photo-1619158401201-8fa932695178?w=500&h=500&fit=crop',
-      },
-      {
-        name: 'Badam Shake',
-        description: 'Creamy almond milkshake with roasted almonds and cardamom',
-        basePrice: 40,
-        prices: [40, 50, 60, 70],
-        category: 'Special',
-        image: 'https://i.pinimg.com/736x/c7/b5/b1/c7b5b10e2cddec350fe8fa38e872e6c3.jpg',
-      },
-      {
-        name: 'Traffic Jam',
-        description: 'Colorful layered smoothie with strawberry, mango, and kiwi',
-        basePrice: 60,
-        prices: [null, 60, 80, 100], // No small size
-        category: 'Special',
-        image: 'https://i.pinimg.com/1200x/27/79/47/277947a4d8322924af89cb5bbc9e831f.jpg',
-      },
+      { name: 'Cold Coffee', description: 'Refreshing iced coffee blended to perfection', basePrice: 50, prices: [null, 50, 80, 100], category: 'Special', image: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=500&h=500&fit=crop' },
+      { name: 'Khajoor Shake', description: 'Rich date shake, naturally sweetened with premium dates', basePrice: 50, prices: [50, 60, 70, 80], category: 'Special', image: 'https://i.pinimg.com/1200x/30/cd/4b/30cd4b640c4f9bdd165297316ae6c614.jpg' },
+      { name: 'Kesar Badam', description: 'Luxurious saffron almond shake, rich and aromatic', basePrice: 40, prices: [40, 50, 60, 70], category: 'Special', image: 'https://i.pinimg.com/736x/a5/36/62/a5366248c1363627ae47b9d631a7626f.jpg' },
+      { name: 'Kesar Pista', description: 'Premium saffron pistachio shake, creamy delight', basePrice: 40, prices: [40, 50, 60, 70], category: 'Special', image: 'https://i.pinimg.com/736x/3f/a4/64/3fa464c9e546fc06437bff4ec77f96b1.jpg' },
+      { name: 'Black Currant', description: 'Tangy black currant shake with berry goodness', basePrice: 40, prices: [40, 50, 60, 70], category: 'Special', image: 'https://i.pinimg.com/736x/a6/64/ed/a664edee9ad699c21badfae952a0e548.jpg' },
+      { name: 'Blueberry Shake', description: 'Antioxidant-rich blueberry milkshake', basePrice: 40, prices: [40, 50, 60, 70], category: 'Special', image: 'https://i.pinimg.com/1200x/41/0b/b6/410bb6567b3b06e3e97920d32ebb4340.jpg' },
+      { name: 'Oreo Shake', description: 'Indulgent cookies and cream shake topped with crushed Oreos', basePrice: 40, prices: [40, 50, 60, 70], category: 'Special', image: 'https://images.unsplash.com/photo-1619158401201-8fa932695178?w=500&h=500&fit=crop' },
+      { name: 'Badam Shake', description: 'Creamy almond milkshake with roasted almonds and cardamom', basePrice: 40, prices: [40, 50, 60, 70], category: 'Special', image: 'https://i.pinimg.com/736x/c7/b5/b1/c7b5b10e2cddec350fe8fa38e872e6c3.jpg' },
+      { name: 'Traffic Jam', description: 'Colorful layered smoothie with strawberry, mango, and kiwi', basePrice: 60, prices: [null, 60, 80, 100], category: 'Special', image: 'https://i.pinimg.com/1200x/27/79/47/277947a4d8322924af89cb5bbc9e831f.jpg' },
     ];
 
     for (const item of menuItems) {
       // Insert menu item
-      const [result] = await connection.execute(
-        'INSERT IGNORE INTO menuItems (name, description, basePrice, category, image, isAvailable) VALUES (?, ?, ?, ?, ?, 1)',
+      await client.query(
+        'INSERT INTO "menuItems" (name, description, "basePrice", category, image, "isAvailable") VALUES ($1, $2, $3, $4, $5, true) ON CONFLICT DO NOTHING',
         [item.name, item.description, item.basePrice, item.category, item.image]
       );
       
-      // Get the menu item ID (either just inserted or existing)
-      const [rows] = await connection.execute('SELECT id FROM menuItems WHERE name = ?', [item.name]);
-      if (rows.length > 0 && item.prices) {
-        const menuItemId = rows[0].id;
+      // Get the menu item ID
+      const itemResult = await client.query('SELECT id FROM "menuItems" WHERE name = $1', [item.name]);
+      if (itemResult.rows.length > 0 && item.prices) {
+        const menuItemId = itemResult.rows[0].id;
         const sizeNames = ['Small', 'Medium', 'Large', 'Ex-Large'];
         
         for (let i = 0; i < item.prices.length; i++) {
           const price = item.prices[i];
           if (price !== null) {
             // Get size ID
-            const [sizeRows] = await connection.execute('SELECT id FROM sizes WHERE name = ?', [sizeNames[i]]);
-            if (sizeRows.length > 0) {
-              const sizeId = sizeRows[0].id;
-              await connection.execute(
-                'INSERT INTO menuItemPrices (menuItemId, sizeId, price, isAvailable) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE price = ?, isAvailable = 1',
-                [menuItemId, sizeId, price, price]
+            const sizeResult = await client.query('SELECT id FROM sizes WHERE name = $1', [sizeNames[i]]);
+            if (sizeResult.rows.length > 0) {
+              const sizeId = sizeResult.rows[0].id;
+              await client.query(
+                'INSERT INTO "menuItemPrices" ("menuItemId", "sizeId", price, "isAvailable") VALUES ($1, $2, $3, true) ON CONFLICT ("menuItemId", "sizeId") DO UPDATE SET price = $3, "isAvailable" = true',
+                [menuItemId, sizeId, price]
               );
             }
           }
@@ -578,9 +374,10 @@ async function seed() {
   } catch (error) {
     console.error('❌ Error seeding database:', error?.message || error);
     console.error('Full error:', error);
-    process.exit(1); // Exit with error code so Railway knows something failed
+    process.exit(1);
   } finally {
-    await connection.end();
+    client.release();
+    await pool.end();
   }
 }
 

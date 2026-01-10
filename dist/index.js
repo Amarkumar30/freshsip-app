@@ -13,27 +13,31 @@ var UNAUTHED_ERR_MSG = "Please login (10001)";
 var NOT_ADMIN_ERR_MSG = "You do not have required permission (10002)";
 
 // server/db.ts
-import { eq, desc } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
+import { eq, desc, asc, and } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/node-postgres";
+import pg from "pg";
 
 // drizzle/schema.ts
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, json, boolean, index } from "drizzle-orm/mysql-core";
-var users = mysqlTable("users", {
-  id: int("id").autoincrement().primaryKey(),
+import { integer, pgEnum, pgTable, text, timestamp, varchar, decimal, json, boolean, index, serial } from "drizzle-orm/pg-core";
+var roleEnum = pgEnum("role", ["user", "admin"]);
+var orderStatusEnum = pgEnum("order_status", ["pending", "confirmed", "preparing", "ready", "completed", "cancelled"]);
+var paymentStatusEnum = pgEnum("payment_status", ["pending", "completed", "failed", "refunded"]);
+var users = pgTable("users", {
+  id: serial("id").primaryKey(),
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  role: roleEnum("role").default("user").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull()
 }, (table) => ({
   openIdIdx: index("idx_users_openId").on(table.openId),
   roleIdx: index("idx_users_role").on(table.role)
 }));
-var menuItems = mysqlTable("menuItems", {
-  id: int("id").autoincrement().primaryKey(),
+var menuItems = pgTable("menuItems", {
+  id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
   basePrice: decimal("basePrice", { precision: 10, scale: 2 }).notNull(),
@@ -43,46 +47,56 @@ var menuItems = mysqlTable("menuItems", {
   // e.g., "Orange Juice", "Mixed Fruit"
   isAvailable: boolean("isAvailable").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull()
+  updatedAt: timestamp("updatedAt").defaultNow().notNull()
 }, (table) => ({
   categoryIdx: index("idx_menuItems_category").on(table.category),
   availableIdx: index("idx_menuItems_isAvailable").on(table.isAvailable)
 }));
-var sizes = mysqlTable("sizes", {
-  id: int("id").autoincrement().primaryKey(),
+var sizes = pgTable("sizes", {
+  id: serial("id").primaryKey(),
   name: varchar("name", { length: 50 }).notNull().unique(),
-  // Small, Medium, Large
+  // Small, Medium, Large, Ex-Large
   priceMultiplier: decimal("priceMultiplier", { precision: 5, scale: 2 }).notNull(),
-  // 1.0, 1.3, 1.6
+  // 1.0, 1.3, 1.6, 2.0
   createdAt: timestamp("createdAt").defaultNow().notNull()
 });
-var addOns = mysqlTable("addOns", {
-  id: int("id").autoincrement().primaryKey(),
+var menuItemPrices = pgTable("menuItemPrices", {
+  id: serial("id").primaryKey(),
+  menuItemId: integer("menuItemId").notNull(),
+  sizeId: integer("sizeId").notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  isAvailable: boolean("isAvailable").default(true).notNull()
+}, (table) => ({
+  menuItemIdIdx: index("idx_menuItemPrices_menuItemId").on(table.menuItemId),
+  uniqueItemSize: index("idx_menuItemPrices_unique").on(table.menuItemId, table.sizeId)
+}));
+var addOns = pgTable("addOns", {
+  id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
   // Ice Cream, Extra Fruit, etc.
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   isAvailable: boolean("isAvailable").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull()
+  updatedAt: timestamp("updatedAt").defaultNow().notNull()
 });
-var orders = mysqlTable("orders", {
-  id: int("id").autoincrement().primaryKey(),
+var orders = pgTable("orders", {
+  id: serial("id").primaryKey(),
   orderNumber: varchar("orderNumber", { length: 50 }).notNull().unique(),
   // e.g., ORD-20250101-001
-  userId: int("userId"),
+  userId: integer("userId"),
   // Can be null for guest orders
   customerName: varchar("customerName", { length: 255 }).notNull(),
   customerPhone: varchar("customerPhone", { length: 20 }),
   totalAmount: decimal("totalAmount", { precision: 10, scale: 2 }).notNull(),
-  status: mysqlEnum("status", ["pending", "confirmed", "ready", "completed", "cancelled"]).default("pending").notNull(),
-  paymentStatus: mysqlEnum("paymentStatus", ["pending", "completed", "failed"]).default("pending").notNull(),
+  status: orderStatusEnum("status").default("pending").notNull(),
+  paymentStatus: paymentStatusEnum("paymentStatus").default("pending").notNull(),
   paymentMethod: varchar("paymentMethod", { length: 50 }),
   // razorpay, upi, etc.
   razorpayOrderId: varchar("razorpayOrderId", { length: 255 }),
   razorpayPaymentId: varchar("razorpayPaymentId", { length: 255 }),
   notes: text("notes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
   completedAt: timestamp("completedAt")
 }, (table) => ({
   orderNumberIdx: index("idx_orders_orderNumber").on(table.orderNumber),
@@ -92,12 +106,16 @@ var orders = mysqlTable("orders", {
   customerPhoneIdx: index("idx_orders_customerPhone").on(table.customerPhone),
   updatedAtIdx: index("idx_orders_updatedAt").on(table.updatedAt)
 }));
-var orderItems = mysqlTable("orderItems", {
-  id: int("id").autoincrement().primaryKey(),
-  orderId: int("orderId").notNull(),
-  menuItemId: int("menuItemId").notNull(),
-  sizeId: int("sizeId").notNull(),
-  quantity: int("quantity").default(1).notNull(),
+var orderItems = pgTable("orderItems", {
+  id: serial("id").primaryKey(),
+  orderId: integer("orderId").notNull(),
+  menuItemId: integer("menuItemId").notNull(),
+  menuItemName: varchar("menuItemName", { length: 255 }),
+  // Store name directly for display
+  sizeId: integer("sizeId").notNull(),
+  sizeName: varchar("sizeName", { length: 50 }),
+  // Store size name directly for display
+  quantity: integer("quantity").default(1).notNull(),
   itemPrice: decimal("itemPrice", { precision: 10, scale: 2 }).notNull(),
   // Price at time of order
   addOnsData: json("addOnsData").$type(),
@@ -109,12 +127,12 @@ var orderItems = mysqlTable("orderItems", {
   orderIdIdx: index("idx_orderItems_orderId").on(table.orderId),
   menuItemIdIdx: index("idx_orderItems_menuItemId").on(table.menuItemId)
 }));
-var orderStatusHistory = mysqlTable("orderStatusHistory", {
-  id: int("id").autoincrement().primaryKey(),
-  orderId: int("orderId").notNull(),
+var orderStatusHistory = pgTable("orderStatusHistory", {
+  id: serial("id").primaryKey(),
+  orderId: integer("orderId").notNull(),
   oldStatus: varchar("oldStatus", { length: 50 }),
   newStatus: varchar("newStatus", { length: 50 }).notNull(),
-  changedBy: int("changedBy"),
+  changedBy: integer("changedBy"),
   // Admin user ID who made the change
   timestamp: timestamp("timestamp").defaultNow().notNull()
 }, (table) => ({
@@ -135,11 +153,23 @@ var ENV = {
 };
 
 // server/db.ts
+var { Pool } = pg;
 var _db = null;
+var _pool = null;
 async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      _pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        max: 10,
+        // Max 10 concurrent connections
+        idleTimeoutMillis: 6e4,
+        // Close idle connections after 60s
+        connectionTimeoutMillis: 1e4,
+        // Connection timeout
+        ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : void 0
+      });
+      _db = drizzle(_pool);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -187,7 +217,8 @@ async function upsertUser(user) {
     if (Object.keys(updateSet).length === 0) {
       updateSet.lastSignedIn = /* @__PURE__ */ new Date();
     }
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
+    await db.insert(users).values(values).onConflictDoUpdate({
+      target: users.openId,
       set: updateSet
     });
   } catch (error) {
@@ -218,6 +249,11 @@ async function getAllAddOns() {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(addOns).where(eq(addOns.isAvailable, true));
+}
+async function getMenuItemPrices() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(menuItemPrices).where(eq(menuItemPrices.isAvailable, true));
 }
 async function createOrder(orderData) {
   const db = await getDb();
@@ -250,6 +286,46 @@ async function getAllOrders() {
   if (!db) return [];
   return db.select().from(orders).orderBy(desc(orders.createdAt));
 }
+async function getAllOrdersWithItems() {
+  const db = await getDb();
+  if (!db) return [];
+  const allOrders = await db.select().from(orders).orderBy(asc(orders.createdAt));
+  const ordersWithItems = await Promise.all(
+    allOrders.map(async (order) => {
+      const items = await db.select({
+        id: orderItems.id,
+        menuItemId: orderItems.menuItemId,
+        sizeId: orderItems.sizeId,
+        quantity: orderItems.quantity,
+        itemPrice: orderItems.itemPrice,
+        addOnsData: orderItems.addOnsData,
+        addOnsTotal: orderItems.addOnsTotal,
+        specialInstructions: orderItems.specialInstructions,
+        storedMenuItemName: orderItems.menuItemName,
+        storedSizeName: orderItems.sizeName,
+        joinedMenuItemName: menuItems.name,
+        joinedSizeName: sizes.name
+      }).from(orderItems).leftJoin(menuItems, eq(orderItems.menuItemId, menuItems.id)).leftJoin(sizes, eq(orderItems.sizeId, sizes.id)).where(eq(orderItems.orderId, order.id));
+      const mappedItems = items.map((item) => ({
+        id: item.id,
+        menuItemId: item.menuItemId,
+        sizeId: item.sizeId,
+        quantity: item.quantity,
+        itemPrice: item.itemPrice,
+        addOnsData: item.addOnsData,
+        addOnsTotal: item.addOnsTotal,
+        specialInstructions: item.specialInstructions,
+        menuItemName: item.storedMenuItemName || item.joinedMenuItemName || `Item #${item.menuItemId}`,
+        sizeName: item.storedSizeName || item.joinedSizeName || `Size #${item.sizeId}`
+      }));
+      return {
+        ...order,
+        items: mappedItems
+      };
+    })
+  );
+  return ordersWithItems;
+}
 async function updateOrderStatus(orderId, newStatus, adminId) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -267,11 +343,38 @@ async function updateOrderStatus(orderId, newStatus, adminId) {
 async function updateOrderPaymentStatus(orderId, paymentStatus, razorpayPaymentId) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.update(orders).set({
+  const updateData = {
     paymentStatus,
-    razorpayPaymentId,
+    updatedAt: /* @__PURE__ */ new Date()
+  };
+  if (razorpayPaymentId) {
+    updateData.razorpayPaymentId = razorpayPaymentId;
+  }
+  await db.update(orders).set(updateData).where(eq(orders.id, orderId));
+  console.log(`[DB] Updated payment status for order ${orderId}: ${paymentStatus}`);
+}
+async function updateOrderStatusOnly(orderId, newStatus) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(orders).set({
+    status: newStatus,
     updatedAt: /* @__PURE__ */ new Date()
   }).where(eq(orders.id, orderId));
+}
+async function updateOrderRazorpayId(orderId, razorpayOrderId) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(orders).set({
+    razorpayOrderId,
+    updatedAt: /* @__PURE__ */ new Date()
+  }).where(eq(orders.id, orderId));
+  console.log(`[DB] Updated razorpayOrderId for order ${orderId}: ${razorpayOrderId}`);
+}
+async function getOrderByRazorpayOrderId(razorpayOrderId) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(orders).where(eq(orders.razorpayOrderId, razorpayOrderId)).limit(1);
+  return result.length > 0 ? result[0] : null;
 }
 async function addOrderItem(orderItemData) {
   const db = await getDb();
@@ -279,7 +382,9 @@ async function addOrderItem(orderItemData) {
   return db.insert(orderItems).values({
     orderId: orderItemData.orderId,
     menuItemId: orderItemData.menuItemId,
+    menuItemName: orderItemData.menuItemName,
     sizeId: orderItemData.sizeId,
+    sizeName: orderItemData.sizeName,
     quantity: orderItemData.quantity,
     itemPrice: orderItemData.itemPrice,
     addOnsData: orderItemData.addOnsData,
@@ -379,8 +484,6 @@ var createOAuthHttpClient = () => axios.create({
   timeout: AXIOS_TIMEOUT_MS
 });
 var SDKServer = class {
-  client;
-  oauthService;
   constructor(client = createOAuthHttpClient()) {
     this.client = client;
     this.oauthService = new OAuthService(this.client);
@@ -466,7 +569,6 @@ var SDKServer = class {
   }
   async verifySession(cookieValue) {
     if (!cookieValue) {
-      console.warn("[Auth] Missing session cookie");
       return null;
     }
     try {
@@ -749,17 +851,13 @@ function initializeWebSocket(httpServer) {
     }
   });
   io.on("connection", (socket) => {
-    console.log(`[WebSocket] Client connected: ${socket.id}`);
     socket.on("join-admin", (data) => {
       socket.join("admin-room");
-      console.log(`[WebSocket] Admin joined: ${socket.id}`);
     });
     socket.on("join-customer", (orderNumber) => {
       socket.join(`order-${orderNumber}`);
-      console.log(`[WebSocket] Customer joined tracking for order: ${orderNumber}`);
     });
     socket.on("disconnect", () => {
-      console.log(`[WebSocket] Client disconnected: ${socket.id}`);
     });
   });
   return io;
@@ -769,6 +867,15 @@ function emitOrderUpdate(orderId, orderData) {
     io.to("admin-room").emit("order-updated", {
       orderId,
       ...orderData,
+      timestamp: /* @__PURE__ */ new Date()
+    });
+  }
+}
+function emitOrderStatusChange(orderNumber, status) {
+  if (io) {
+    io.to(`order-${orderNumber}`).emit("status-changed", {
+      orderNumber,
+      status,
       timestamp: /* @__PURE__ */ new Date()
     });
   }
@@ -791,6 +898,48 @@ if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
     key_secret: process.env.RAZORPAY_KEY_SECRET
   });
 }
+var rateLimitMap = /* @__PURE__ */ new Map();
+var RATE_LIMIT_MAX = 5;
+var RATE_LIMIT_WINDOW = 60 * 60 * 1e3;
+var getClientIP = (req) => {
+  return req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.headers["x-real-ip"] || req.connection?.remoteAddress || req.socket?.remoteAddress || "unknown";
+};
+var checkRateLimit = (ip) => {
+  const now = Date.now();
+  const record = rateLimitMap.get(ip);
+  if (rateLimitMap.size > 1e4) {
+    const entries = Array.from(rateLimitMap.entries());
+    for (const [key, value] of entries) {
+      if (now > value.resetTime) rateLimitMap.delete(key);
+    }
+  }
+  if (!record || now > record.resetTime) {
+    rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+    return { allowed: true, remaining: RATE_LIMIT_MAX - 1, resetIn: RATE_LIMIT_WINDOW };
+  }
+  if (record.count >= RATE_LIMIT_MAX) {
+    return { allowed: false, remaining: 0, resetIn: record.resetTime - now };
+  }
+  record.count++;
+  return { allowed: true, remaining: RATE_LIMIT_MAX - record.count, resetIn: record.resetTime - now };
+};
+var ADMIN_USERNAME = process.env.ADMIN_USERNAME || "sanjeet";
+var ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "sanjeet@sau405";
+var simpleAdminProcedure = publicProcedure.use(async ({ ctx, next }) => {
+  const adminToken = ctx.req.headers["x-admin-token"];
+  if (!adminToken) {
+    throw new TRPCError3({ code: "UNAUTHORIZED", message: "Admin authentication required" });
+  }
+  try {
+    const decoded = JSON.parse(Buffer.from(adminToken, "base64").toString());
+    if (decoded.username !== ADMIN_USERNAME || decoded.password !== ADMIN_PASSWORD) {
+      throw new TRPCError3({ code: "FORBIDDEN", message: "Invalid admin credentials" });
+    }
+  } catch (e) {
+    throw new TRPCError3({ code: "FORBIDDEN", message: "Invalid admin token" });
+  }
+  return next({ ctx });
+});
 var adminProcedure2 = protectedProcedure.use(async ({ ctx, next }) => {
   if (ctx.user?.role !== "admin") {
     throw new TRPCError3({ code: "FORBIDDEN", message: "Admin access required" });
@@ -813,7 +962,8 @@ var appRouter = router({
   menu: router({
     getItems: publicProcedure.query(() => getAllMenuItems()),
     getSizes: publicProcedure.query(() => getAllSizes()),
-    getAddOns: publicProcedure.query(() => getAllAddOns())
+    getAddOns: publicProcedure.query(() => getAllAddOns()),
+    getItemPrices: publicProcedure.query(() => getMenuItemPrices())
   }),
   // Order procedures
   orders: router({
@@ -824,7 +974,9 @@ var appRouter = router({
         items: z2.array(
           z2.object({
             menuItemId: z2.number(),
+            menuItemName: z2.string().optional(),
             sizeId: z2.number(),
+            sizeName: z2.string().optional(),
             quantity: z2.number(),
             itemPrice: z2.number(),
             addOnsData: z2.array(z2.any()).optional(),
@@ -834,7 +986,16 @@ var appRouter = router({
         ),
         totalAmount: z2.number()
       })
-    ).mutation(async ({ input }) => {
+    ).mutation(async ({ input, ctx }) => {
+      const clientIP = getClientIP(ctx.req);
+      const rateLimit = checkRateLimit(clientIP);
+      if (!rateLimit.allowed) {
+        const minutesLeft = Math.ceil(rateLimit.resetIn / 6e4);
+        throw new TRPCError3({
+          code: "TOO_MANY_REQUESTS",
+          message: `Too many orders. Please try again in ${minutesLeft} minute${minutesLeft > 1 ? "s" : ""}.`
+        });
+      }
       try {
         const timestamp2 = Date.now();
         const random = Math.floor(Math.random() * 1e3);
@@ -867,7 +1028,9 @@ var appRouter = router({
           await addOrderItem({
             orderId,
             menuItemId: item.menuItemId,
+            menuItemName: item.menuItemName,
             sizeId: item.sizeId,
+            sizeName: item.sizeName,
             quantity: item.quantity,
             itemPrice: item.itemPrice.toFixed(2),
             addOnsData: item.addOnsData,
@@ -930,7 +1093,7 @@ var appRouter = router({
         if (!razorpay) {
           throw new TRPCError3({
             code: "INTERNAL_SERVER_ERROR",
-            message: "Payment gateway not configured"
+            message: "Payment gateway not configured. Please add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET environment variables."
           });
         }
         const amountInPaisa = Math.round(parseFloat(input.amount) * 100);
@@ -939,15 +1102,17 @@ var appRouter = router({
           currency: "INR",
           receipt: `order_${input.orderId}`,
           notes: {
-            orderId: input.orderId,
+            orderId: String(input.orderId),
             customerName: input.customerName
           }
         });
+        await updateOrderRazorpayId(input.orderId, razorpayOrder.id);
+        console.log(`[Payment] Razorpay order created: ${razorpayOrder.id} for order ${input.orderId}`);
         return {
           razorpayOrderId: razorpayOrder.id,
           amount: amountInPaisa,
           currency: "INR",
-          keyId: process.env.VITE_RAZORPAY_KEY_ID
+          keyId: process.env.RAZORPAY_KEY_ID
         };
       } catch (error) {
         console.error("Error creating Razorpay order:", error);
@@ -957,7 +1122,7 @@ var appRouter = router({
         });
       }
     }),
-    // Verify payment
+    // Verify payment (client-side verification - backup to webhook)
     verifyPayment: publicProcedure.input(
       z2.object({
         razorpayOrderId: z2.string(),
@@ -973,18 +1138,36 @@ var appRouter = router({
             message: "Payment gateway not configured"
           });
         }
-        const crypto = await import("crypto");
-        const expectedSignature = crypto.createHmac("sha256", process.env.RAZORPAY_KEY_SECRET || "").update(`${input.razorpayOrderId}|${input.razorpayPaymentId}`).digest("hex");
+        const crypto2 = await import("crypto");
+        const expectedSignature = crypto2.createHmac("sha256", process.env.RAZORPAY_KEY_SECRET || "").update(`${input.razorpayOrderId}|${input.razorpayPaymentId}`).digest("hex");
         if (expectedSignature !== input.razorpaySignature) {
           throw new TRPCError3({
             code: "BAD_REQUEST",
-            message: "Payment verification failed"
+            message: "Payment verification failed - invalid signature"
           });
         }
-        await updateOrderPaymentStatus(input.orderId, "completed", input.razorpayPaymentId);
-        emitOrderUpdate(input.orderId, {
-          paymentStatus: "completed",
-          razorpayPaymentId: input.razorpayPaymentId
+        await Promise.all([
+          updateOrderPaymentStatus(input.orderId, "completed", input.razorpayPaymentId),
+          updateOrderStatusOnly(input.orderId, "confirmed")
+        ]);
+        console.log(`[Payment] Payment verified for order ${input.orderId}, payment ID: ${input.razorpayPaymentId}`);
+        getOrderById(input.orderId).then((order) => {
+          if (order) {
+            emitNewOrder({
+              id: order.id,
+              orderNumber: order.orderNumber,
+              customerName: order.customerName,
+              totalAmount: order.totalAmount,
+              status: "confirmed",
+              paymentStatus: "completed",
+              createdAt: order.createdAt
+            });
+            emitOrderUpdate(input.orderId, {
+              paymentStatus: "completed",
+              status: "confirmed",
+              razorpayPaymentId: input.razorpayPaymentId
+            });
+          }
         });
         return {
           success: true,
@@ -997,13 +1180,37 @@ var appRouter = router({
           message: "Payment verification failed"
         });
       }
+    }),
+    // Get payment status for an order
+    getPaymentStatus: publicProcedure.input(z2.object({ orderId: z2.number() })).query(async ({ input }) => {
+      const order = await getOrderById(input.orderId);
+      if (!order) {
+        throw new TRPCError3({ code: "NOT_FOUND", message: "Order not found" });
+      }
+      return {
+        paymentStatus: order.paymentStatus,
+        razorpayPaymentId: order.razorpayPaymentId
+      };
     })
   }),
   // Admin procedures
   admin: router({
-    getAllOrders: adminProcedure2.query(async () => {
+    // Verify admin credentials
+    login: publicProcedure.input(z2.object({
+      username: z2.string(),
+      password: z2.string()
+    })).mutation(async ({ input }) => {
+      if (input.username === ADMIN_USERNAME && input.password === ADMIN_PASSWORD) {
+        return {
+          success: true,
+          token: Buffer.from(JSON.stringify({ username: input.username, password: input.password })).toString("base64")
+        };
+      }
+      throw new TRPCError3({ code: "UNAUTHORIZED", message: "Invalid credentials" });
+    }),
+    getAllOrders: simpleAdminProcedure.query(async () => {
       try {
-        return await getAllOrders();
+        return await getAllOrdersWithItems();
       } catch (error) {
         console.error("Error fetching orders:", error);
         throw new TRPCError3({
@@ -1012,7 +1219,19 @@ var appRouter = router({
         });
       }
     }),
-    getOrdersByStatus: adminProcedure2.input(z2.object({ status: z2.string() })).query(async ({ input }) => {
+    // Get all orders including unpaid (for debugging)
+    getAllOrdersIncludingUnpaid: simpleAdminProcedure.query(async () => {
+      try {
+        return await getAllOrders();
+      } catch (error) {
+        console.error("Error fetching all orders:", error);
+        throw new TRPCError3({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to fetch orders"
+        });
+      }
+    }),
+    getOrdersByStatus: simpleAdminProcedure.input(z2.object({ status: z2.string() })).query(async ({ input }) => {
       try {
         return await getOrdersByStatus(input.status);
       } catch (error) {
@@ -1023,7 +1242,7 @@ var appRouter = router({
         });
       }
     }),
-    getOrderDetails: adminProcedure2.input(z2.object({ orderId: z2.number() })).query(async ({ input }) => {
+    getOrderDetails: simpleAdminProcedure.input(z2.object({ orderId: z2.number() })).query(async ({ input }) => {
       try {
         const order = await getOrderById(input.orderId);
         if (!order) {
@@ -1047,12 +1266,12 @@ var appRouter = router({
         });
       }
     }),
-    updateOrderStatus: adminProcedure2.input(
+    updateOrderStatus: simpleAdminProcedure.input(
       z2.object({
         orderId: z2.number(),
         status: z2.enum(["pending", "confirmed", "ready", "completed", "cancelled"])
       })
-    ).mutation(async ({ input, ctx }) => {
+    ).mutation(async ({ input }) => {
       try {
         const order = await getOrderById(input.orderId);
         if (!order) {
@@ -1061,11 +1280,12 @@ var appRouter = router({
             message: "Order not found"
           });
         }
-        await updateOrderStatus(input.orderId, input.status, ctx.user?.id);
+        await updateOrderStatus(input.orderId, input.status);
         emitOrderUpdate(input.orderId, {
           status: input.status,
           updatedAt: /* @__PURE__ */ new Date()
         });
+        emitOrderStatusChange(order.orderNumber, input.status);
         return {
           success: true,
           message: `Order status updated to ${input.status}`
@@ -1075,6 +1295,18 @@ var appRouter = router({
         throw new TRPCError3({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to update order status"
+        });
+      }
+    }),
+    // Analytics endpoints
+    getMenuItems: simpleAdminProcedure.query(async () => {
+      try {
+        return await getAllMenuItems();
+      } catch (error) {
+        console.error("Error fetching menu items:", error);
+        throw new TRPCError3({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to fetch menu items"
         });
       }
     })
@@ -1126,7 +1358,26 @@ var vite_config_default = defineConfig({
   publicDir: path.resolve(import.meta.dirname, "client", "public"),
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
-    emptyOutDir: true
+    emptyOutDir: true,
+    // Performance optimizations
+    minify: "terser",
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true
+      }
+    },
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Split vendor chunks for better caching
+          vendor: ["react", "react-dom"],
+          ui: ["@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu", "@radix-ui/react-tooltip"],
+          router: ["wouter"]
+        }
+      }
+    },
+    chunkSizeWarningLimit: 500
   },
   server: {
     host: true,
@@ -1197,6 +1448,127 @@ function serveStatic(app) {
   });
 }
 
+// server/razorpayWebhook.ts
+import crypto from "crypto";
+function verifyWebhookSignature(body, signature, secret) {
+  const expectedSignature = crypto.createHmac("sha256", secret).update(body).digest("hex");
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expectedSignature)
+  );
+}
+function registerRazorpayWebhook(app) {
+  app.post(
+    "/api/razorpay/webhook",
+    // Use raw body parser for this route
+    (req, res) => {
+      handleWebhook(req, res);
+    }
+  );
+  console.log("[Razorpay] Webhook endpoint registered at /api/razorpay/webhook");
+}
+async function handleWebhook(req, res) {
+  try {
+    const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    if (webhookSecret) {
+      const signature = req.headers["x-razorpay-signature"];
+      if (!signature) {
+        console.warn("[Razorpay Webhook] No signature found in headers");
+        return res.status(400).json({ error: "Missing signature" });
+      }
+      const rawBody = JSON.stringify(req.body);
+      const isValid = verifyWebhookSignature(rawBody, signature, webhookSecret);
+      if (!isValid) {
+        console.warn("[Razorpay Webhook] Invalid signature");
+        return res.status(400).json({ error: "Invalid signature" });
+      }
+    } else {
+      console.warn("[Razorpay Webhook] No webhook secret configured - skipping signature verification");
+    }
+    const payload = req.body;
+    console.log(`[Razorpay Webhook] Received event: ${payload.event}`);
+    switch (payload.event) {
+      case "payment.captured":
+        await handlePaymentCaptured(payload);
+        break;
+      case "payment.failed":
+        await handlePaymentFailed(payload);
+        break;
+      case "order.paid":
+        await handleOrderPaid(payload);
+        break;
+      default:
+        console.log(`[Razorpay Webhook] Unhandled event: ${payload.event}`);
+    }
+    res.status(200).json({ status: "ok" });
+  } catch (error) {
+    console.error("[Razorpay Webhook] Error processing webhook:", error);
+    res.status(200).json({ status: "error", message: "Internal error but acknowledged" });
+  }
+}
+async function handlePaymentCaptured(payload) {
+  const payment = payload.payload.payment?.entity;
+  if (!payment) {
+    console.warn("[Razorpay Webhook] No payment entity in payload");
+    return;
+  }
+  console.log(`[Razorpay Webhook] Payment captured: ${payment.id} for order ${payment.order_id}`);
+  const order = await getOrderByRazorpayOrderId(payment.order_id);
+  if (!order) {
+    console.warn(`[Razorpay Webhook] Order not found for razorpay_order_id: ${payment.order_id}`);
+    return;
+  }
+  await updateOrderPaymentStatus(order.id, "completed", payment.id);
+  await updateOrderStatusOnly(order.id, "confirmed");
+  console.log(`[Razorpay Webhook] Order ${order.orderNumber} marked as PAID and CONFIRMED`);
+  emitNewOrder({
+    id: order.id,
+    orderNumber: order.orderNumber,
+    customerName: order.customerName,
+    totalAmount: order.totalAmount,
+    status: "confirmed",
+    paymentStatus: "completed",
+    createdAt: order.createdAt
+  });
+  emitOrderUpdate(order.id, {
+    paymentStatus: "completed",
+    status: "confirmed",
+    razorpayPaymentId: payment.id
+  });
+}
+async function handlePaymentFailed(payload) {
+  const payment = payload.payload.payment?.entity;
+  if (!payment) return;
+  console.log(`[Razorpay Webhook] Payment failed: ${payment.id} for order ${payment.order_id}`);
+  const order = await getOrderByRazorpayOrderId(payment.order_id);
+  if (!order) return;
+  await updateOrderPaymentStatus(order.id, "failed", payment.id);
+  console.log(`[Razorpay Webhook] Order ${order.orderNumber} marked as FAILED`);
+  emitOrderUpdate(order.id, {
+    paymentStatus: "failed"
+  });
+}
+async function handleOrderPaid(payload) {
+  const orderEntity = payload.payload.order?.entity;
+  if (!orderEntity) return;
+  console.log(`[Razorpay Webhook] Order paid event: ${orderEntity.id}`);
+  const order = await getOrderByRazorpayOrderId(orderEntity.id);
+  if (!order) return;
+  if (order.paymentStatus !== "completed") {
+    await updateOrderPaymentStatus(order.id, "completed");
+    await updateOrderStatusOnly(order.id, "confirmed");
+    emitNewOrder({
+      id: order.id,
+      orderNumber: order.orderNumber,
+      customerName: order.customerName,
+      totalAmount: order.totalAmount,
+      status: "confirmed",
+      paymentStatus: "completed",
+      createdAt: order.createdAt
+    });
+  }
+}
+
 // server/_core/index.ts
 function isPortAvailable(port) {
   return new Promise((resolve) => {
@@ -1219,11 +1591,20 @@ async function startServer() {
   const app = express2();
   const server = createServer(app);
   initializeWebSocket(server);
-  app.use(express2.json({ limit: "50mb" }));
-  app.use(express2.urlencoded({ limit: "50mb", extended: true }));
   app.get("/health", (_req, res) => {
-    res.status(200).json({ status: "ok", timestamp: (/* @__PURE__ */ new Date()).toISOString() });
+    res.status(200).send("ok");
   });
+  app.use((req, res, next) => {
+    express2.json({ limit: "50mb" })(req, res, (err) => {
+      if (err && (err.type === "request.aborted" || err.message === "request aborted")) {
+        return;
+      }
+      if (err) return next(err);
+      next();
+    });
+  });
+  app.use(express2.urlencoded({ limit: "50mb", extended: true }));
+  registerRazorpayWebhook(app);
   registerOAuthRoutes(app);
   app.use(
     "/api/trpc",
@@ -1237,6 +1618,15 @@ async function startServer() {
   } else {
     serveStatic(app);
   }
+  app.use((err, _req, res, _next) => {
+    if (err.type === "request.aborted" || err.code === "ECONNRESET" || err.message === "request aborted") {
+      return;
+    }
+    console.error("[Server Error]", err.message || err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
   const preferredPort = parseInt(process.env.PORT || "3000");
   const port = await findAvailablePort(preferredPort);
   if (port !== preferredPort) {

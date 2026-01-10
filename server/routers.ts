@@ -36,7 +36,8 @@ const checkRateLimit = (ip: string): { allowed: boolean; remaining: number; rese
   
   // Clean up expired entries periodically
   if (rateLimitMap.size > 10000) {
-    for (const [key, value] of rateLimitMap.entries()) {
+    const entries = Array.from(rateLimitMap.entries());
+    for (const [key, value] of entries) {
       if (now > value.resetTime) rateLimitMap.delete(key);
     }
   }

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { ShoppingCart, Plus, Minus, X, ChevronUp } from "lucide-react";
+import { ShoppingCart, Plus, Minus, X, ChevronUp, Droplet } from "lucide-react";
 import FreshSipLogo from "@/components/FreshSipLogo";
 import { toast } from "sonner";
 

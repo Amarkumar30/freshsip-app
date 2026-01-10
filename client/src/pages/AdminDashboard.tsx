@@ -32,17 +32,17 @@ interface OrderItemWithDetails {
   quantity: number;
   itemPrice: string;
   addOnsData?: any;
-  addOnsTotal?: string;
-  specialInstructions?: string;
-  menuItemName?: string;
-  sizeName?: string;
+  addOnsTotal?: string | null;
+  specialInstructions?: string | null;
+  menuItemName?: string | null;
+  sizeName?: string | null;
 }
 
 interface Order {
   id: number;
   orderNumber: string;
   customerName: string;
-  customerPhone?: string;
+  customerPhone?: string | null;
   totalAmount: string;
   status: string;
   paymentStatus: string;
@@ -58,8 +58,8 @@ interface OrderItem {
   quantity: number;
   itemPrice: string;
   addOnsData?: any;
-  addOnsTotal?: string;
-  specialInstructions?: string;
+  addOnsTotal?: string | null;
+  specialInstructions?: string | null;
 }
 
 // Get admin token from localStorage
