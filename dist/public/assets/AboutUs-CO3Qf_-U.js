@@ -1,4 +1,4 @@
-import{j as e}from"./ui-Dtvg_Dyh.js";import{L as s}from"./router-BVmQc6U9.js";import{c as t,F as a,L as c,M as r}from"./index-8U-Y7aF_.js";import{A as l}from"./arrow-left-BmBawEA3.js";import"./vendor-DHe-TmYE.js";
+import{j as e}from"./ui-Dtvg_Dyh.js";import{L as s}from"./router-BVmQc6U9.js";import{c as t,F as a,L as c,M as r}from"./index-yWCOFvGA.js";import{A as l}from"./arrow-left-B5vLNSoS.js";import"./vendor-DHe-TmYE.js";
 /**
  * @license lucide-react v0.453.0 - ISC
  *
