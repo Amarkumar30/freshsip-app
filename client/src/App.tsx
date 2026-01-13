@@ -100,6 +100,7 @@ function Router() {
         <Route path={"/checkout"} component={Checkout} />
         <Route path={"/order-success"} component={OrderSuccess} />
         <Route path={"/order-tracking"} component={OrderTracking} />
+        <Route path={"/admin"}>{() => { window.location.href = "/admin/login"; return null; }}</Route>
         <Route path={"/admin/login"} component={AdminLogin} />
         <Route path={"/admin/dashboard"} component={AdminDashboard} />
         <Route path={"/about"} component={AboutUs} />
