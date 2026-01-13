@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link } from "wouter";
@@ -26,6 +26,14 @@ declare global {
   }
 }
 
+// Interface for pending payment tracking
+interface PendingPayment {
+  orderId: number;
+  orderNumber: string;
+  razorpayOrderId: string;
+  timestamp: number;
+}
+
 export default function Checkout() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [customerName, setCustomerName] = useState("");
@@ -33,12 +41,133 @@ export default function Checkout() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [phoneError, setPhoneError] = useState("");
   const [nameError, setNameError] = useState("");
+  const [checkingPayment, setCheckingPayment] = useState(false);
   const phoneInputRef = useRef<HTMLInputElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const paymentCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const createOrderMutation = trpc.orders.create.useMutation();
   const createRazorpayOrderMutation = trpc.payment.createRazorpayOrder.useMutation();
   const verifyPaymentMutation = trpc.payment.verifyPayment.useMutation();
+  const trpcUtils = trpc.useUtils();
+
+  // Save pending payment to localStorage for recovery
+  const savePendingPayment = useCallback((orderId: number, orderNumber: string, razorpayOrderId: string) => {
+    const pendingPayment: PendingPayment = {
+      orderId,
+      orderNumber,
+      razorpayOrderId,
+      timestamp: Date.now(),
+    };
+    localStorage.setItem("pendingPayment", JSON.stringify(pendingPayment));
+  }, []);
+
+  // Clear pending payment from localStorage
+  const clearPendingPayment = useCallback(() => {
+    localStorage.removeItem("pendingPayment");
+  }, []);
+
+  // Check for pending payment on mount (handles browser close/refresh during payment)
+  useEffect(() => {
+    const checkPendingPayment = async () => {
+      const pendingStr = localStorage.getItem("pendingPayment");
+      if (!pendingStr) return;
+
+      try {
+        const pending: PendingPayment = JSON.parse(pendingStr);
+        
+        // Only check if payment is recent (within last 10 minutes)
+        const age = Date.now() - pending.timestamp;
+        if (age > 10 * 60 * 1000) {
+          clearPendingPayment();
+          return;
+        }
+
+        // Check payment status
+        toast.loading("Checking previous payment...", { id: "pending-check" });
+        const result = await trpcUtils.payment.getPaymentStatus.fetch({ orderId: pending.orderId });
+        
+        if (result.paymentStatus === "completed") {
+          toast.success("Payment completed!", { id: "pending-check" });
+          clearPendingPayment();
+          localStorage.removeItem("cart");
+          window.location.replace(`/order-success?orderNumber=${pending.orderNumber}&orderId=${pending.orderId}`);
+        } else {
+          toast.dismiss("pending-check");
+        }
+      } catch (e) {
+        console.error("Error checking pending payment:", e);
+        toast.dismiss("pending-check");
+      }
+    };
+
+    checkPendingPayment();
+  }, [clearPendingPayment, trpcUtils.payment.getPaymentStatus]);
+
+  // Function to check payment status and redirect if successful
+  // This handles the case where UPI app returns but handler doesn't fire
+  const checkPaymentStatusAndRedirect = useCallback(async (orderId: number, orderNumber: string, razorpayOrderId: string, isModalDismiss: boolean = false) => {
+    setCheckingPayment(true);
+    
+    // Give webhook a moment to process (especially important on modal dismiss)
+    if (isModalDismiss) {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+    
+    toast.loading("Verifying payment...", { id: "payment-check" });
+    
+    let attempts = 0;
+    const maxAttempts = 8; // Check for 40 seconds (5s intervals)
+    
+    const checkStatus = async (): Promise<boolean> => {
+      try {
+        const result = await trpcUtils.payment.getPaymentStatus.fetch({ orderId });
+        if (result.paymentStatus === "completed") {
+          return true;
+        }
+      } catch (e) {
+        console.error("Error checking payment status:", e);
+      }
+      return false;
+    };
+    
+    // First immediate check
+    if (await checkStatus()) {
+      clearPendingPayment();
+      toast.success("Payment successful!", { id: "payment-check" });
+      localStorage.removeItem("cart");
+      setTimeout(() => {
+        window.location.replace(`/order-success?orderNumber=${orderNumber}&orderId=${orderId}`);
+      }, 500);
+      return;
+    }
+    
+    // Poll with intervals
+    const pollInterval = setInterval(async () => {
+      attempts++;
+      
+      if (await checkStatus()) {
+        clearInterval(pollInterval);
+        clearPendingPayment();
+        toast.success("Payment successful!", { id: "payment-check" });
+        localStorage.removeItem("cart");
+        setTimeout(() => {
+          window.location.replace(`/order-success?orderNumber=${orderNumber}&orderId=${orderId}`);
+        }, 500);
+        return;
+      }
+      
+      if (attempts >= maxAttempts) {
+        clearInterval(pollInterval);
+        setCheckingPayment(false);
+        setIsProcessing(false);
+        toast.dismiss("payment-check");
+        toast.error(`Unable to confirm payment. If you paid, track order #${orderNumber.split('-').pop()}`, {
+          duration: 10000,
+        });
+      }
+    }, 5000);
+  }, [clearPendingPayment, trpcUtils.payment.getPaymentStatus]);
 
   useEffect(() => {
     // Load cart from localStorage
@@ -160,6 +289,9 @@ export default function Checkout() {
         customerPhone,
       });
 
+      // Save pending payment for recovery
+      savePendingPayment(orderResponse.orderId, orderResponse.orderNumber, razorpayResponse.razorpayOrderId);
+
       // Step 3: Open Razorpay checkout
       const options = {
         key: razorpayResponse.keyId,
@@ -205,29 +337,49 @@ export default function Checkout() {
           },
         },
         handler: async (response: any) => {
-          // Payment successful - redirect immediately for better UX
-          // Verification happens in background (webhook is the backup)
+          // Payment successful - this is the ideal path
+          console.log("Payment handler called - payment successful");
+          
+          // Clear pending payment tracking
+          clearPendingPayment();
           localStorage.removeItem("cart");
           
-          // Redirect immediately - don't wait for server verification
-          const successUrl = `/order-success?orderNumber=${orderResponse.orderNumber}&orderId=${orderResponse.orderId}&paymentId=${response.razorpay_payment_id}`;
-          window.location.href = successUrl;
+          // Show immediate success feedback
+          toast.success("Payment successful! Redirecting...", { duration: 2000 });
           
-          // Fire verification in background (non-blocking)
+          // Verify in background (non-blocking for better UX)
           verifyPaymentMutation.mutate({
             orderId: orderResponse.orderId,
             razorpayOrderId: razorpayResponse.razorpayOrderId,
             razorpayPaymentId: response.razorpay_payment_id,
             razorpaySignature: response.razorpay_signature,
           });
+          
+          // Redirect immediately with replace (more reliable on mobile)
+          const successUrl = `/order-success?orderNumber=${orderResponse.orderNumber}&orderId=${orderResponse.orderId}&paymentId=${response.razorpay_payment_id}`;
+          
+          // Small delay to ensure toast is visible, then redirect
+          setTimeout(() => {
+            window.location.replace(successUrl);
+          }, 800);
         },
         modal: {
           ondismiss: () => {
-            setIsProcessing(false);
-            toast.error("Payment cancelled. Your order has been saved - you can retry payment.");
+            // Modal dismissed - could be user cancellation OR return from UPI app
+            console.log("Razorpay modal dismissed");
+            
+            // Important: Check if payment was actually made before showing error
+            // This is crucial for UPI intent flow where modal closes when switching to UPI app
+            checkPaymentStatusAndRedirect(
+              orderResponse.orderId,
+              orderResponse.orderNumber,
+              razorpayResponse.razorpayOrderId,
+              true // isModalDismiss flag
+            );
           },
-          confirm_close: true,
-          escape: false,
+          confirm_close: false, // Don't ask for confirmation
+          escape: false, // Prevent accidental ESC key close
+          backdropclose: false, // Prevent backdrop click close
         },
         notes: {
           orderNumber: orderResponse.orderNumber,
@@ -371,13 +523,13 @@ export default function Checkout() {
 
             <Button
               onClick={handlePayment}
-              disabled={isProcessing || cart.length === 0}
+              disabled={isProcessing || checkingPayment || cart.length === 0}
               className="w-full mt-4 bg-orange-500 hover:bg-orange-600 h-14 text-base font-semibold rounded-xl"
             >
-              {isProcessing ? (
+              {isProcessing || checkingPayment ? (
                 <>
                   <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Processing...
+                  {checkingPayment ? "Checking payment..." : "Processing..."}
                 </>
               ) : (
                 `Pay ₹${calculateTotal().toFixed(0)}`
@@ -395,13 +547,13 @@ export default function Checkout() {
         </div>
         <Button
           onClick={handlePayment}
-          disabled={isProcessing || cart.length === 0}
+          disabled={isProcessing || checkingPayment || cart.length === 0}
           className="w-full bg-orange-500 hover:bg-orange-600 h-14 text-base font-semibold rounded-xl"
         >
-          {isProcessing ? (
+          {isProcessing || checkingPayment ? (
             <>
               <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              Processing...
+              {checkingPayment ? "Checking payment..." : "Processing..."}
             </>
           ) : (
             "Pay Now"
