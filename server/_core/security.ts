@@ -23,7 +23,8 @@ export function setupSecurity(app: Express) {
         connectSrc: [
           "'self'", 
           "https://api.razorpay.com",
-          "wss://freshsip-app-production.up.railway.app",
+          "wss://www.freshsip.qikcart.in",
+          "wss://freshsip.qikcart.in",
           "wss://localhost:*"
         ],
         frameSrc: ["'self'", "https://api.razorpay.com"],
@@ -41,7 +42,7 @@ export function setupSecurity(app: Express) {
   const allowedOrigins = process.env.ALLOWED_ORIGINS 
     ? process.env.ALLOWED_ORIGINS.split(',')
     : process.env.NODE_ENV === 'production'
-      ? ['https://freshsip-app-production.up.railway.app', 'https://your-domain.com']
+      ? ['https://www.freshsip.qikcart.in', 'https://freshsip.qikcart.in']
       : ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'];
 
   app.use(cors({
