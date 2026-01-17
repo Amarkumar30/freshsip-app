@@ -36,7 +36,11 @@ async function startServer() {
   
   // Health check endpoint FIRST - before body parsing (lightweight, no body needed)
   app.get("/health", (_req, res) => {
-    res.status(200).send("ok");
+    res.status(200).json({ 
+      status: "healthy", 
+      timestamp: new Date().toISOString(),
+      uptime: Math.floor(process.uptime())
+    });
   });
   
   // Configure body parser with error handling for aborted requests

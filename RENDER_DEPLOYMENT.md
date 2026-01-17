@@ -95,8 +95,12 @@ Render free tier spins down after 15 minutes of inactivity. Use a free cron serv
 2. Create free account
 3. Create new cron job:
    - **URL**: `https://your-app.onrender.com/health`
-   - **Schedule**: Every 14 minutes
+   - **Schedule**: Every 10 minutes
    - **Request Method**: GET
+   - **Timeout**: 30 seconds (if available)
+   - **Add Header**: `User-Agent: curl/7.68.0`
+
+> **Note**: The app now starts in ~3 seconds (optimized cold start). If cron job fails, see [COLD_START_FIX.md](COLD_START_FIX.md) for troubleshooting.
 
 ### Option B: UptimeRobot
 1. Go to [uptimerobot.com](https://uptimerobot.com/)
