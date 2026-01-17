@@ -9,6 +9,7 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { initializeWebSocket } from "../websocket";
 import { registerRazorpayWebhook } from "../razorpayWebhook";
+import { setupSecurity } from "./security";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -34,7 +35,7 @@ async function startServer() {
   const server = createServer(app);
   initializeWebSocket(server);
   
-  // Health check endpoint FIRST - before body parsing (lightweight, no body needed)
+  // Health check endpoint FIRST - before security middleware (for uptime monitors)
   app.get("/health", (_req, res) => {
     res.status(200).json({ 
       status: "healthy", 
@@ -43,18 +44,21 @@ async function startServer() {
     });
   });
   
-  // Configure body parser with error handling for aborted requests
+  // Security middleware (Helmet, CORS, Rate Limiting)
+  setupSecurity(app);
+  
+  // Configure body parser with reduced limits and error handling
   app.use((req, res, next) => {
-    express.json({ limit: "50mb" })(req, res, (err) => {
+    express.json({ limit: "2mb" })(req, res, (err) => {
       if (err && (err.type === 'request.aborted' || err.message === 'request aborted')) {
-        // Silently ignore aborted requests (Railway health checks, client disconnects)
+        // Silently ignore aborted requests (health checks, client disconnects)
         return;
       }
       if (err) return next(err);
       next();
     });
   });
-  app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  app.use(express.urlencoded({ limit: "2mb", extended: true }));
   
   // Register Razorpay webhook (before other routes)
   registerRazorpayWebhook(app);
