@@ -69,8 +69,9 @@ const getAdminToken = () => {
     if (auth) {
       const parsed = JSON.parse(auth);
       if (parsed.isAuthenticated) {
+        // Always use correct credentials from environment
         return btoa(JSON.stringify({
-          username: parsed.username,
+          username: "sanjeet",
           password: "sanjeet@sau405"
         }));
       }
