@@ -21,6 +21,7 @@ async function checkRecentOrders() {
         o."customerPhone",
         o."totalAmount",
         o.status,
+        o."paymentStatus",
         o."createdAt",
         COUNT(oi.id) as items_count
       FROM orders o
@@ -42,6 +43,7 @@ async function checkRecentOrders() {
       console.log(`   Customer: ${order.customerName} (${order.customerPhone})`);
       console.log(`   Amount: ₹${order.totalAmount}`);
       console.log(`   Status: ${order.status}`);
+      console.log(`   Payment Status: ${order.paymentStatus} ${order.paymentStatus === 'completed' ? '✅' : '⚠️ NOT COMPLETED'}`);
       console.log(`   Items: ${order.items_count}`);
       console.log(`   Created: ${new Date(order.createdAt).toLocaleString()}`);
       console.log('');
