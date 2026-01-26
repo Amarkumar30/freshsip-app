@@ -37,6 +37,11 @@ export async function seedDatabaseOnStartup() {
   try {
     console.log('🌱 Starting database seed check...');
     const db = await getDb();
+    
+    if (!db) {
+      console.error('❌ Database connection failed');
+      return { success: false, error: 'Database connection failed' };
+    }
 
     // Check if menu items already exist
     const existingItems = await db.select().from(menuItems);
@@ -86,9 +91,10 @@ export async function seedDatabaseOnStartup() {
           .values({
             name: item.name,
             description: `Fresh and delicious ${item.name.toLowerCase()}`,
+            basePrice: item.prices[0].toString(), // Use Small size as base price
             category: item.category,
             image: `/images/${item.name.toLowerCase().replace(/\s+/g, '-')}.jpg`,
-            available: true,
+            isAvailable: true,
           })
           .returning();
 
