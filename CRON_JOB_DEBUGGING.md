@@ -236,3 +236,29 @@ tail -f logs/*.log
 - Timezone in cron-job.org should match deployment region
 
 **Next Steps**: Share the exact error message from cron-job.org execution history for specific debugging.
+
+---
+
+## Practical fixes for "sleep/wake" failures
+
+If your platform suspends the app overnight (Render free tier, Railway free, etc.), the first scheduled ping after wake can fail because the app is still booting. Use one or more of the options below:
+
+- **Increase cron timeout & retries**: In cron-job.org (or whichever scheduler), increase the request timeout and enable retry attempts. If the scheduler allows, set at least 3 retries with 10s-30s backoff between retries.
+- **Delay the first job**: Move the first scheduled run slightly later (e.g., 8:05 instead of 8:00) to give the instance time to boot.
+- **Use an external warm-up ping**: Add a separate uptime monitor (UptimeRobot / Healthchecks) that pings the app every 5–15 minutes during operating hours to keep it warm.
+- **Enable "Always On" / disable auto-sleep**: If your hosting offers an Always On option (Azure App Service, paid Render plan), enable it to avoid cold starts entirely.
+- **Use a retrying proxy/wrapper**: If your scheduler only supports single HTTP GET, create a small serverless wrapper that the scheduler calls; the wrapper will retry the app until it responds (useful on platforms where you can deploy a tiny function).
+
+Quick example scheduler settings (recommended):
+
+- Timeout: 30 seconds
+- Retries: 3
+- Retry interval: exponential (10s, 20s, 40s)
+- First job: 8:05 (or add a short delay before critical jobs run)
+
+If you'd like, I can:
+
+- Add a tiny serverless retry wrapper you can deploy as a warmup endpoint.
+- Add a short note to your production README with the exact cron settings to use.
+
+Please paste the exact cron-job.org error text (Execution History) if you want me to tune the retry code precisely.

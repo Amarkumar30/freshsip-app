@@ -16,6 +16,7 @@
     "db:push": "drizzle-kit generate && drizzle-kit migrate",
     "db:migrate": "node check-db.mjs && drizzle-kit generate && drizzle-kit migrate",
     "db:seed": "node seed-db.mjs",
+    "db:test": "node test-neon.mjs",
     "generate-admin": "node generate-admin-hash.mjs"
   },
   "dependencies": {

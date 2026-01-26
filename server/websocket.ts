@@ -41,8 +41,8 @@ export function initializeWebSocket(httpServer: HTTPServer) {
 
     // Join customer room for order tracking
     socket.on("join-customer", (orderNumber) => {
-      // Validate order number format
-      if (typeof orderNumber !== 'string' || !orderNumber.match(/^FS-\d+$/)) {
+      // Validate order number format (ORD-timestamp-random format)
+      if (typeof orderNumber !== 'string' || !orderNumber.match(/^ORD-\d+-\d+$/)) {
         console.warn(`[WebSocket] Invalid order number from ${socket.id}: ${orderNumber}`);
         return;
       }

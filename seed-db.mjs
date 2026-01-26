@@ -1,4 +1,5 @@
 import pg from 'pg';
+import 'dotenv/config';
 
 const { Pool } = pg;
 
@@ -7,7 +8,7 @@ const dbUrl = process.env.DATABASE_URL || 'postgresql://freshsip_user:freshsip_p
 
 const pool = new Pool({
   connectionString: dbUrl,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
+  ssl: { rejectUnauthorized: false },
 });
 
 async function createTables() {
