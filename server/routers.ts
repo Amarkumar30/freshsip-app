@@ -76,7 +76,9 @@ const simpleAdminProcedure = publicProcedure.use(async ({ ctx, next }) => {
     throw new TRPCError({ code: "UNAUTHORIZED", message: "Admin authentication required" });
   }
   
-  if (!ADMIN_USERNAME || !ADMIN_PASSWORD_HASH) {
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_USERNAME || (!ADMIN_PASSWORD_HASH && !ADMIN_PASSWORD)) {
     throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Admin credentials not configured" });
   }
   
@@ -88,8 +90,16 @@ const simpleAdminProcedure = publicProcedure.use(async ({ ctx, next }) => {
       throw new TRPCError({ code: "FORBIDDEN", message: "Invalid admin credentials" });
     }
     
-    // Verify password with bcrypt (constant-time comparison)
-    const isValidPassword = await bcrypt.compare(decoded.password, ADMIN_PASSWORD_HASH);
+    // Verify password - support both bcrypt hash and plain password
+    let isValidPassword = false;
+    if (ADMIN_PASSWORD_HASH) {
+      // Use bcrypt if hash is available (more secure)
+      isValidPassword = await bcrypt.compare(decoded.password, ADMIN_PASSWORD_HASH);
+    } else if (ADMIN_PASSWORD) {
+      // Fallback to plain password comparison (less secure but simpler)
+      isValidPassword = decoded.password === ADMIN_PASSWORD;
+    }
+    
     if (!isValidPassword) {
       throw new TRPCError({ code: "FORBIDDEN", message: "Invalid admin credentials" });
     }
