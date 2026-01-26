@@ -63,15 +63,15 @@ export function setupSecurity(app: Express) {
     exposedHeaders: ['set-cookie']
   }));
 
-  // Global rate limiter - 100 requests per 15 minutes per IP
+  // Global rate limiter - 500 requests per 15 minutes per IP
   const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100,
+    max: 500, // Increased for legitimate browsing + ordering
     message: 'Too many requests from this IP, please try again later',
     standardHeaders: true,
     legacyHeaders: false,
-    // Skip rate limiting for health checks
-    skip: (req) => req.path === '/health'
+    // Skip rate limiting for health checks and API routes (handled separately)
+    skip: (req) => req.path === '/health' || req.path.startsWith('/api/trpc')
   });
 
   app.use(globalLimiter);
@@ -95,7 +95,7 @@ export const authLimiter = rateLimit({
  */
 export const adminLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 30, // 30 requests per window
+  max: 200, // Increased for real-time polling and admin operations
   message: 'Too many admin requests, please try again later',
   standardHeaders: true,
   legacyHeaders: false,
