@@ -7,7 +7,6 @@ import { z } from "zod";
 import * as db from "./db";
 import { emitOrderUpdate, emitNewOrder, emitOrderStatusChange } from "./websocket";
 import Razorpay from "razorpay";
-import bcrypt from "bcrypt";
 
 // Initialize Razorpay instance only if keys are provided
 let razorpay: any = null;
@@ -59,16 +58,8 @@ const checkRateLimit = (ip: string): { allowed: boolean; remaining: number; rese
   return { allowed: true, remaining: RATE_LIMIT_MAX - record.count, resetIn: record.resetTime - now };
 };
 
-// Secure admin credentials from environment variables
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
-const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH;
-
-if (!ADMIN_USERNAME || !ADMIN_PASSWORD_HASH) {
-  console.warn('[Security] ADMIN_USERNAME and ADMIN_PASSWORD_HASH not set. Admin login will not work.');
-  console.warn('[Security] Generate password hash: node -e "const bcrypt = require(\'bcrypt\'); bcrypt.hash(\'your-password\', 10).then(console.log)"');
-}
-
-// Simple admin auth procedure - validates adminToken header
+// Simple admin auth - just username and password check
+// Simple admin auth - just username and password check
 const simpleAdminProcedure = publicProcedure.use(async ({ ctx, next }) => {
   const adminToken = ctx.req.headers["x-admin-token"] as string;
   
@@ -76,39 +67,23 @@ const simpleAdminProcedure = publicProcedure.use(async ({ ctx, next }) => {
     throw new TRPCError({ code: "UNAUTHORIZED", message: "Admin authentication required" });
   }
   
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
-  
-  if (!ADMIN_USERNAME || (!ADMIN_PASSWORD_HASH && !ADMIN_PASSWORD)) {
-    throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Admin credentials not configured" });
-  }
+  // Simple credentials from environment
+  const ADMIN_USER = process.env.ADMIN_USERNAME || "sanjeet";
+  const ADMIN_PASS = process.env.ADMIN_PASSWORD || "sanjeet@sau405";
   
   try {
     const decoded = JSON.parse(Buffer.from(adminToken, 'base64').toString());
     
-    // Verify username
-    if (decoded.username !== ADMIN_USERNAME) {
-      throw new TRPCError({ code: "FORBIDDEN", message: "Invalid admin credentials" });
+    // Simple direct comparison - no bcrypt, no complexity
+    if (decoded.username === ADMIN_USER && decoded.password === ADMIN_PASS) {
+      return next({ ctx });
     }
     
-    // Verify password - support both bcrypt hash and plain password
-    let isValidPassword = false;
-    if (ADMIN_PASSWORD_HASH) {
-      // Use bcrypt if hash is available (more secure)
-      isValidPassword = await bcrypt.compare(decoded.password, ADMIN_PASSWORD_HASH);
-    } else if (ADMIN_PASSWORD) {
-      // Fallback to plain password comparison (less secure but simpler)
-      isValidPassword = decoded.password === ADMIN_PASSWORD;
-    }
-    
-    if (!isValidPassword) {
-      throw new TRPCError({ code: "FORBIDDEN", message: "Invalid admin credentials" });
-    }
+    throw new TRPCError({ code: "FORBIDDEN", message: "Invalid credentials" });
   } catch (e) {
     if (e instanceof TRPCError) throw e;
     throw new TRPCError({ code: "FORBIDDEN", message: "Invalid admin token" });
   }
-  
-  return next({ ctx });
 });
 
 // Legacy OAuth admin procedure (kept for compatibility)
