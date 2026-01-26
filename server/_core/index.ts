@@ -10,6 +10,7 @@ import { serveStatic, setupVite } from "./vite";
 import { initializeWebSocket } from "../websocket";
 import { registerRazorpayWebhook } from "../razorpayWebhook";
 import { setupSecurity } from "./security";
+import { seedDatabaseOnStartup } from "../seed-on-startup";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -31,6 +32,10 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 }
 
 async function startServer() {
+  // Seed database on startup (production-safe, checks existing items)
+  console.log('🚀 Initializing server...');
+  await seedDatabaseOnStartup();
+  
   const app = express();
   const server = createServer(app);
   initializeWebSocket(server);
