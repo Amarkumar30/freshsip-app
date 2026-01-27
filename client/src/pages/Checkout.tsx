@@ -109,19 +109,24 @@ export default function Checkout() {
   const checkPaymentStatusAndRedirect = useCallback(async (orderId: number, orderNumber: string, razorpayOrderId: string, isModalDismiss: boolean = false) => {
     setCheckingPayment(true);
     
-    // Give webhook a moment to process (especially important on modal dismiss)
+    // For UPI apps (GPay, PhonePe), give webhook more time to process
     if (isModalDismiss) {
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 1500));
     }
     
     toast.loading("Verifying payment...", { id: "payment-check" });
     
     let attempts = 0;
-    const maxAttempts = 8; // Check for 40 seconds (5s intervals)
+    const maxAttempts = 15; // Check for up to 45 seconds (3s intervals - faster polling)
     
     const checkStatus = async (): Promise<boolean> => {
       try {
-        const result = await trpcUtils.payment.getPaymentStatus.fetch({ orderId });
+        // Force fresh fetch, bypass cache
+        const result = await trpcUtils.payment.getPaymentStatus.fetch(
+          { orderId },
+          { staleTime: 0 }
+        );
+        console.log(`[Payment Check] Attempt ${attempts + 1}: Status = ${result.paymentStatus}`);
         if (result.paymentStatus === "completed") {
           return true;
         }
@@ -134,26 +139,24 @@ export default function Checkout() {
     // First immediate check
     if (await checkStatus()) {
       clearPendingPayment();
-      toast.success("Payment successful!", { id: "payment-check" });
+      toast.success("Payment successful! Redirecting...", { id: "payment-check" });
       localStorage.removeItem("cart");
-      setTimeout(() => {
-        window.location.replace(`/order-success?orderNumber=${orderNumber}&orderId=${orderId}`);
-      }, 500);
+      // Immediate redirect for faster UX
+      window.location.replace(`/order-success?orderNumber=${orderNumber}&orderId=${orderId}`);
       return;
     }
     
-    // Poll with intervals
+    // Poll with faster intervals (3 seconds instead of 5)
     const pollInterval = setInterval(async () => {
       attempts++;
       
       if (await checkStatus()) {
         clearInterval(pollInterval);
         clearPendingPayment();
-        toast.success("Payment successful!", { id: "payment-check" });
+        toast.success("Payment successful! Redirecting...", { id: "payment-check" });
         localStorage.removeItem("cart");
-        setTimeout(() => {
-          window.location.replace(`/order-success?orderNumber=${orderNumber}&orderId=${orderId}`);
-        }, 500);
+        // Immediate redirect
+        window.location.replace(`/order-success?orderNumber=${orderNumber}&orderId=${orderId}`);
         return;
       }
       
@@ -162,12 +165,70 @@ export default function Checkout() {
         setCheckingPayment(false);
         setIsProcessing(false);
         toast.dismiss("payment-check");
-        toast.error(`Unable to confirm payment. If you paid, track order #${orderNumber.split('-').pop()}`, {
-          duration: 10000,
-        });
+        
+        // Provide helpful message with order tracking link
+        toast.error(
+          <div>
+            <p>Unable to confirm payment.</p>
+            <p className="text-sm mt-1">If you paid, your order #{orderNumber.split('-').pop()} will be processed.</p>
+            <a href={`/order-tracking/${orderNumber}`} className="text-orange-500 underline text-sm mt-2 block">
+              Track Order Status →
+            </a>
+          </div>,
+          { duration: 15000 }
+        );
       }
-    }, 5000);
+    }, 3000); // 3 second intervals instead of 5
   }, [clearPendingPayment, trpcUtils.payment.getPaymentStatus]);
+
+  // Handle visibility change - detect when user returns from UPI app
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible') {
+        // User returned to the page (possibly from UPI app)
+        const pendingStr = localStorage.getItem("pendingPayment");
+        if (pendingStr && isProcessing) {
+          console.log("[Visibility] User returned, checking payment status...");
+          try {
+            const pending: PendingPayment = JSON.parse(pendingStr);
+            // Quick check on visibility change
+            const result = await trpcUtils.payment.getPaymentStatus.fetch(
+              { orderId: pending.orderId },
+              { staleTime: 0 }
+            );
+            
+            if (result.paymentStatus === "completed") {
+              console.log("[Visibility] Payment confirmed on return!");
+              clearPendingPayment();
+              localStorage.removeItem("cart");
+              toast.success("Payment successful! Redirecting...", { id: "payment-check" });
+              window.location.replace(`/order-success?orderNumber=${pending.orderNumber}&orderId=${pending.orderId}`);
+            }
+          } catch (e) {
+            console.error("[Visibility] Error checking payment:", e);
+          }
+        }
+      }
+    };
+
+    // Also handle focus event (backup for some mobile browsers)
+    const handleFocus = () => {
+      if (document.visibilityState === 'visible') {
+        handleVisibilityChange();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+    // pageshow event for Safari/iOS
+    window.addEventListener('pageshow', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('pageshow', handleVisibilityChange);
+    };
+  }, [isProcessing, clearPendingPayment, trpcUtils.payment.getPaymentStatus]);
 
   useEffect(() => {
     // Load cart from localStorage
