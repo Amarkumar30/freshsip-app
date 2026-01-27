@@ -11,6 +11,25 @@ interface State {
   error: Error | null;
 }
 
+// Check if error is a network/navigation error that should be ignored
+const isRecoverableError = (error: Error | null): boolean => {
+  if (!error) return false;
+  const msg = error.message?.toLowerCase() || '';
+  const name = error.name?.toLowerCase() || '';
+  
+  // These errors happen during navigation and are recoverable
+  if (name === 'aborterror') return true;
+  if (msg.includes('load failed')) return true;
+  if (msg.includes('failed to fetch')) return true;
+  if (msg.includes('aborted')) return true;
+  if (msg.includes('cancelled')) return true;
+  if (msg.includes('network request failed')) return true;
+  if (msg.includes('dynamically imported module')) return true;
+  if (msg.includes('loading chunk')) return true;
+  
+  return false;
+};
+
 class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
@@ -18,7 +37,21 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   static getDerivedStateFromError(error: Error): State {
+    // Don't show error boundary for recoverable network errors
+    if (isRecoverableError(error)) {
+      return { hasError: false, error: null };
+    }
     return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error) {
+    // If it's a recoverable error, just log and don't show error UI
+    if (isRecoverableError(error)) {
+      console.log('[ErrorBoundary] Ignoring recoverable error:', error.message);
+      this.setState({ hasError: false, error: null });
+      return;
+    }
+    console.error('[ErrorBoundary] Caught error:', error);
   }
 
   render() {
