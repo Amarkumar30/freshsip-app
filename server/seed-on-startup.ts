@@ -31,6 +31,9 @@ const MENU_DATA = [
   { name: "Masala Chaas", category: "Special", prices: [40, 60, 80, 100] },
   { name: "Fresh Lime Soda", category: "Special", prices: [40, 60, 80, 100] },
   { name: "Virgin Mojito", category: "Special", prices: [80, 100, 120, 140] },
+  
+  // Extras
+  { name: "Straw", category: "Extras", prices: [2, 2, 2, 2], image: "https://images.unsplash.com/photo-1568899900127-aef5da3bde76?w=400&h=400&fit=crop", description: "Colorful eco-friendly straw for your drink" },
 ];
 
 export async function seedDatabaseOnStartup() {
@@ -90,10 +93,10 @@ export async function seedDatabaseOnStartup() {
           .insert(menuItems)
           .values({
             name: item.name,
-            description: `Fresh and delicious ${item.name.toLowerCase()}`,
+            description: (item as any).description || `Fresh and delicious ${item.name.toLowerCase()}`,
             basePrice: item.prices[0].toString(), // Use Small size as base price
             category: item.category,
-            image: `/images/${item.name.toLowerCase().replace(/\s+/g, '-')}.jpg`,
+            image: (item as any).image || `/images/${item.name.toLowerCase().replace(/\s+/g, '-')}.jpg`,
             isAvailable: true,
           })
           .returning();
