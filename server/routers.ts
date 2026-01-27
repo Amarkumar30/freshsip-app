@@ -156,6 +156,10 @@ export const appRouter = router({
           const random = Math.floor(Math.random() * 1000);
           const orderNumber = `ORD-${timestamp}-${random}`;
 
+          console.log(`[Order Creation] Starting order creation: ${orderNumber}`);
+          console.log(`[Order Creation] Customer: ${input.customerName}, Phone: ${input.customerPhone}`);
+          console.log(`[Order Creation] Items count: ${input.items.length}`);
+
           // Save order to database
           const savedOrder = await db.createOrder({
             orderNumber,
@@ -167,47 +171,55 @@ export const appRouter = router({
 
           // Get the created order ID
           if (!savedOrder) {
+            console.error(`[Order Creation] Failed to create order ${orderNumber}`);
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
               message: "Failed to create order",
             });
           }
+          
           const orderId = savedOrder.id;
-
-          // Emit new order event to admin panel
-          if (savedOrder) {
-            emitNewOrder({
-              id: savedOrder.id,
-              orderNumber: savedOrder.orderNumber,
-              customerName: savedOrder.customerName,
-              totalAmount: savedOrder.totalAmount,
-              status: savedOrder.status,
-              createdAt: savedOrder.createdAt,
-            });
-          }
+          console.log(`[Order Creation] Order saved with ID: ${orderId}`);
 
           // Add order items
+          let itemsAdded = 0;
           for (const item of input.items) {
-            await db.addOrderItem({
-              orderId,
-              menuItemId: item.menuItemId,
-              menuItemName: item.menuItemName,
-              sizeId: item.sizeId,
-              sizeName: item.sizeName,
-              quantity: item.quantity,
-              itemPrice: item.itemPrice.toFixed(2),
-              addOnsData: item.addOnsData,
-              addOnsTotal: item.addOnsTotal.toFixed(2),
-              specialInstructions: item.specialInstructions,
-            });
+            try {
+              console.log(`[Order Creation] Adding item ${itemsAdded + 1}/${input.items.length}: ${item.menuItemName}`);
+              await db.addOrderItem({
+                orderId,
+                menuItemId: item.menuItemId,
+                menuItemName: item.menuItemName,
+                sizeId: item.sizeId,
+                sizeName: item.sizeName,
+                quantity: item.quantity,
+                itemPrice: item.itemPrice.toFixed(2),
+                addOnsData: item.addOnsData,
+                addOnsTotal: item.addOnsTotal.toFixed(2),
+                specialInstructions: item.specialInstructions,
+              });
+              itemsAdded++;
+              console.log(`[Order Creation] Item ${itemsAdded} added successfully`);
+            } catch (itemError) {
+              console.error(`[Order Creation] Failed to add item ${itemsAdded + 1}:`, itemError);
+              throw itemError; // Re-throw to trigger rollback
+            }
           }
 
-          if (!savedOrder) {
-            throw new TRPCError({
-              code: "INTERNAL_SERVER_ERROR",
-              message: "Failed to retrieve created order",
-            });
-          }
+          console.log(`[Order Creation] All ${itemsAdded} items added successfully`);
+
+          // Emit new order event to admin panel
+          console.log(`[Order Creation] Emitting WebSocket event for order ${orderNumber}`);
+          emitNewOrder({
+            id: savedOrder.id,
+            orderNumber: savedOrder.orderNumber,
+            customerName: savedOrder.customerName,
+            totalAmount: savedOrder.totalAmount,
+            status: savedOrder.status,
+            createdAt: savedOrder.createdAt,
+          });
+
+          console.log(`[Order Creation] ✅ Order ${orderNumber} created successfully`);
 
           return {
             success: true,
@@ -215,10 +227,17 @@ export const appRouter = router({
             orderNumber: savedOrder.orderNumber,
           };
         } catch (error) {
-          console.error("Error creating order:", error);
+          console.error("❌ [Order Creation] Error creating order:", error);
+          console.error("Error details:", {
+            message: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined,
+            customerName: input.customerName,
+            customerPhone: input.customerPhone,
+            itemsCount: input.items.length,
+          });
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to create order",
+            message: `Failed to create order: ${error instanceof Error ? error.message : 'Unknown error'}`,
           });
         }
       }),

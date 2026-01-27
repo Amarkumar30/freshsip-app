@@ -104,9 +104,13 @@ export default function AdminDashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Use tRPC hooks
-  const { data: orders = [], refetch: refetchOrders } = trpc.admin.getAllOrders.useQuery(undefined, {
+  const { data: orders = [], refetch: refetchOrders, isLoading: ordersLoading } = trpc.admin.getAllOrders.useQuery(undefined, {
     enabled: isAuthenticated,
     refetchInterval: 5000, // Auto-refresh every 5 seconds
+    staleTime: 0, // Always consider data stale
+    cacheTime: 0, // Don't cache results
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   const { data: orderDetailsData, refetch: refetchOrderDetails } = trpc.admin.getOrderDetails.useQuery(
