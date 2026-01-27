@@ -267,11 +267,12 @@ export default function Menu() {
               )}
             </div>
 
-            {/* Size Selection */}
+            {/* Size Selection - only show if more than 1 size available */}
+            {selectedItem && getAvailableSizesForItem(selectedItem.id).length > 1 && (
             <div>
               <h4 className="font-semibold text-gray-900 mb-3 text-sm">Choose Size</h4>
               <div className="grid grid-cols-4 gap-2">
-                {selectedItem && getAvailableSizesForItem(selectedItem.id).map((size) => {
+                {getAvailableSizesForItem(selectedItem.id).map((size) => {
                   const specificPrice = getItemSizePrice(selectedItem.id, size.id);
                   const price = specificPrice !== null 
                     ? specificPrice.toFixed(0)
@@ -293,6 +294,7 @@ export default function Menu() {
                 })}
               </div>
             </div>
+            )}
 
             {/* Add-ons */}
             {addOns && addOns.length > 0 && (

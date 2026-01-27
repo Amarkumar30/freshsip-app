@@ -33,7 +33,7 @@ const MENU_DATA = [
   { name: "Virgin Mojito", category: "Special", prices: [80, 100, 120, 140] },
   
   // Extras
-  { name: "Straw", category: "Extras", prices: [2, 2, 2, 2], image: "https://images.unsplash.com/photo-1568899900127-aef5da3bde76?w=400&h=400&fit=crop", description: "Colorful eco-friendly straw for your drink" },
+  { name: "Straw", category: "Extras", prices: [2], image: "https://images.unsplash.com/photo-1615723093586-1ad38d59056b?w=400&h=400&fit=crop", description: "Colorful eco-friendly straw for your drink" },
 ];
 
 export async function seedDatabaseOnStartup() {
