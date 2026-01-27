@@ -394,7 +394,7 @@ export const appRouter = router({
         }
       }),
 
-    // Get payment status for an order
+    // Get payment status for an order (with Razorpay API fallback)
     getPaymentStatus: publicProcedure
       .input(z.object({ orderId: z.number() }))
       .query(async ({ input }) => {
@@ -402,6 +402,63 @@ export const appRouter = router({
         if (!order) {
           throw new TRPCError({ code: "NOT_FOUND", message: "Order not found" });
         }
+        
+        // If already completed in DB, return immediately
+        if (order.paymentStatus === "completed") {
+          return {
+            paymentStatus: order.paymentStatus,
+            razorpayPaymentId: order.razorpayPaymentId,
+          };
+        }
+        
+        // If pending, check Razorpay API directly (handles webhook delays)
+        if (order.paymentStatus === "pending" && order.razorpayOrderId && razorpay) {
+          try {
+            console.log(`[Payment] Checking Razorpay API for order ${order.razorpayOrderId}`);
+            const razorpayOrder = await razorpay.orders.fetch(order.razorpayOrderId);
+            
+            if (razorpayOrder.status === "paid") {
+              console.log(`[Payment] Razorpay confirms paid - updating DB for order ${input.orderId}`);
+              
+              // Get payment details
+              const payments = await razorpay.orders.fetchPayments(order.razorpayOrderId);
+              const successfulPayment = payments.items?.find((p: any) => p.status === "captured");
+              
+              if (successfulPayment) {
+                // Update the database
+                await Promise.all([
+                  db.updateOrderPaymentStatus(input.orderId, "completed", successfulPayment.id),
+                  db.updateOrderStatusOnly(input.orderId, "confirmed"),
+                ]);
+                
+                // Emit real-time updates
+                emitNewOrder({
+                  id: order.id,
+                  orderNumber: order.orderNumber,
+                  customerName: order.customerName,
+                  totalAmount: order.totalAmount,
+                  status: "confirmed",
+                  paymentStatus: "completed",
+                  createdAt: order.createdAt,
+                });
+                emitOrderUpdate(input.orderId, {
+                  paymentStatus: "completed",
+                  status: "confirmed",
+                  razorpayPaymentId: successfulPayment.id,
+                });
+                
+                return {
+                  paymentStatus: "completed",
+                  razorpayPaymentId: successfulPayment.id,
+                };
+              }
+            }
+          } catch (err) {
+            console.error(`[Payment] Error checking Razorpay API:`, err);
+            // Fall through to return DB status
+          }
+        }
+        
         return {
           paymentStatus: order.paymentStatus,
           razorpayPaymentId: order.razorpayPaymentId,

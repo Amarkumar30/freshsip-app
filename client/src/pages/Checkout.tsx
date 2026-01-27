@@ -45,13 +45,24 @@ export default function Checkout() {
   const phoneInputRef = useRef<HTMLInputElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const paymentCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const paymentSuccessRef = useRef<boolean>(false); // Track if payment succeeded
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (paymentCheckIntervalRef.current) {
+        clearInterval(paymentCheckIntervalRef.current);
+        paymentCheckIntervalRef.current = null;
+      }
+    };
+  }, []);
 
   const createOrderMutation = trpc.orders.create.useMutation();
   const createRazorpayOrderMutation = trpc.payment.createRazorpayOrder.useMutation();
   const verifyPaymentMutation = trpc.payment.verifyPayment.useMutation();
   const trpcUtils = trpc.useUtils();
 
-  // Save pending payment to localStorage for recovery
+  // Save pending payment to localStorage AND sessionStorage for recovery
   const savePendingPayment = useCallback((orderId: number, orderNumber: string, razorpayOrderId: string) => {
     const pendingPayment: PendingPayment = {
       orderId,
@@ -59,74 +70,148 @@ export default function Checkout() {
       razorpayOrderId,
       timestamp: Date.now(),
     };
-    localStorage.setItem("pendingPayment", JSON.stringify(pendingPayment));
+    const paymentStr = JSON.stringify(pendingPayment);
+    localStorage.setItem("pendingPayment", paymentStr);
+    sessionStorage.setItem("pendingPayment", paymentStr);
+    sessionStorage.setItem("paymentInProgress", "true");
   }, []);
 
-  // Clear pending payment from localStorage
+  // Clear pending payment from both storages
   const clearPendingPayment = useCallback(() => {
     localStorage.removeItem("pendingPayment");
+    sessionStorage.removeItem("pendingPayment");
+    sessionStorage.removeItem("paymentInProgress");
+    if (paymentCheckIntervalRef.current) {
+      clearInterval(paymentCheckIntervalRef.current);
+      paymentCheckIntervalRef.current = null;
+    }
   }, []);
+
+  // Redirect to success page (centralized)
+  const redirectToSuccess = useCallback((orderNumber: string, orderId: number) => {
+    if (paymentSuccessRef.current) return; // Prevent multiple redirects
+    paymentSuccessRef.current = true;
+    
+    clearPendingPayment();
+    localStorage.removeItem("cart");
+    toast.success("Payment successful! Redirecting...", { id: "payment-check" });
+    
+    // Use both replace and assign for maximum reliability
+    const successUrl = `/order-success?orderNumber=${orderNumber}&orderId=${orderId}`;
+    try {
+      window.location.replace(successUrl);
+    } catch (e) {
+      window.location.href = successUrl;
+    }
+  }, [clearPendingPayment]);
 
   // Check for pending payment on mount (handles browser close/refresh during payment)
   useEffect(() => {
     const checkPendingPayment = async () => {
-      const pendingStr = localStorage.getItem("pendingPayment");
+      // Check sessionStorage first (more reliable), then localStorage
+      const pendingStr = sessionStorage.getItem("pendingPayment") || localStorage.getItem("pendingPayment");
       if (!pendingStr) return;
 
       try {
         const pending: PendingPayment = JSON.parse(pendingStr);
         
-        // Only check if payment is recent (within last 10 minutes)
+        // Only check if payment is recent (within last 15 minutes)
         const age = Date.now() - pending.timestamp;
-        if (age > 10 * 60 * 1000) {
+        if (age > 15 * 60 * 1000) {
           clearPendingPayment();
           return;
         }
 
+        // Prevent multiple checks
+        if (paymentSuccessRef.current) return;
+
         // Check payment status
+        setIsProcessing(true);
         toast.loading("Checking previous payment...", { id: "pending-check" });
-        const result = await trpcUtils.payment.getPaymentStatus.fetch({ orderId: pending.orderId });
+        const result = await trpcUtils.payment.getPaymentStatus.fetch(
+          { orderId: pending.orderId },
+          { staleTime: 0 }
+        );
         
         if (result.paymentStatus === "completed") {
-          toast.success("Payment completed!", { id: "pending-check" });
-          clearPendingPayment();
-          localStorage.removeItem("cart");
-          window.location.replace(`/order-success?orderNumber=${pending.orderNumber}&orderId=${pending.orderId}`);
+          redirectToSuccess(pending.orderNumber, pending.orderId);
         } else {
           toast.dismiss("pending-check");
+          setIsProcessing(false);
+          // Continue polling in background
+          startBackgroundPolling(pending.orderId, pending.orderNumber);
         }
       } catch (e) {
         console.error("Error checking pending payment:", e);
         toast.dismiss("pending-check");
+        setIsProcessing(false);
       }
     };
 
     checkPendingPayment();
-  }, [clearPendingPayment, trpcUtils.payment.getPaymentStatus]);
+  }, [clearPendingPayment, trpcUtils.payment.getPaymentStatus, redirectToSuccess]);
+
+  // Start background polling for payment status
+  const startBackgroundPolling = useCallback((orderId: number, orderNumber: string) => {
+    // Clear any existing interval
+    if (paymentCheckIntervalRef.current) {
+      clearInterval(paymentCheckIntervalRef.current);
+    }
+    
+    let attempts = 0;
+    const maxAttempts = 30; // 90 seconds total (3s intervals)
+    
+    paymentCheckIntervalRef.current = setInterval(async () => {
+      if (paymentSuccessRef.current) {
+        if (paymentCheckIntervalRef.current) clearInterval(paymentCheckIntervalRef.current);
+        return;
+      }
+      
+      attempts++;
+      try {
+        const result = await trpcUtils.payment.getPaymentStatus.fetch(
+          { orderId },
+          { staleTime: 0 }
+        );
+        console.log(`[Background Poll] Attempt ${attempts}: Status = ${result.paymentStatus}`);
+        
+        if (result.paymentStatus === "completed") {
+          if (paymentCheckIntervalRef.current) clearInterval(paymentCheckIntervalRef.current);
+          redirectToSuccess(orderNumber, orderId);
+        }
+      } catch (e) {
+        console.error("[Background Poll] Error:", e);
+      }
+      
+      if (attempts >= maxAttempts) {
+        if (paymentCheckIntervalRef.current) clearInterval(paymentCheckIntervalRef.current);
+      }
+    }, 3000);
+  }, [trpcUtils.payment.getPaymentStatus, redirectToSuccess]);
 
   // Function to check payment status and redirect if successful
   // This handles the case where UPI app returns but handler doesn't fire
   const checkPaymentStatusAndRedirect = useCallback(async (orderId: number, orderNumber: string, razorpayOrderId: string, isModalDismiss: boolean = false) => {
+    if (paymentSuccessRef.current) return; // Already redirecting
+    
     setCheckingPayment(true);
     
     // For UPI apps (GPay, PhonePe), give webhook more time to process
     if (isModalDismiss) {
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
     
     toast.loading("Verifying payment...", { id: "payment-check" });
     
-    let attempts = 0;
-    const maxAttempts = 15; // Check for up to 45 seconds (3s intervals - faster polling)
-    
     const checkStatus = async (): Promise<boolean> => {
+      if (paymentSuccessRef.current) return true; // Already handled
       try {
         // Force fresh fetch, bypass cache
         const result = await trpcUtils.payment.getPaymentStatus.fetch(
           { orderId },
           { staleTime: 0 }
         );
-        console.log(`[Payment Check] Attempt ${attempts + 1}: Status = ${result.paymentStatus}`);
+        console.log(`[Payment Check] Status = ${result.paymentStatus}`);
         if (result.paymentStatus === "completed") {
           return true;
         }
@@ -138,25 +223,28 @@ export default function Checkout() {
     
     // First immediate check
     if (await checkStatus()) {
-      clearPendingPayment();
-      toast.success("Payment successful! Redirecting...", { id: "payment-check" });
-      localStorage.removeItem("cart");
-      // Immediate redirect for faster UX
-      window.location.replace(`/order-success?orderNumber=${orderNumber}&orderId=${orderId}`);
+      redirectToSuccess(orderNumber, orderId);
       return;
     }
     
-    // Poll with faster intervals (3 seconds instead of 5)
+    // Start background polling (longer duration)
+    startBackgroundPolling(orderId, orderNumber);
+    
+    // Show progress with a longer timeout message
+    let attempts = 0;
+    const maxAttempts = 20; // 60 seconds with 3s intervals
+    
     const pollInterval = setInterval(async () => {
+      if (paymentSuccessRef.current) {
+        clearInterval(pollInterval);
+        return;
+      }
+      
       attempts++;
       
       if (await checkStatus()) {
         clearInterval(pollInterval);
-        clearPendingPayment();
-        toast.success("Payment successful! Redirecting...", { id: "payment-check" });
-        localStorage.removeItem("cart");
-        // Immediate redirect
-        window.location.replace(`/order-success?orderNumber=${orderNumber}&orderId=${orderId}`);
+        redirectToSuccess(orderNumber, orderId);
         return;
       }
       
@@ -166,28 +254,37 @@ export default function Checkout() {
         setIsProcessing(false);
         toast.dismiss("payment-check");
         
+        // Check one more time after showing error
+        const finalCheck = await checkStatus();
+        if (finalCheck) {
+          redirectToSuccess(orderNumber, orderId);
+          return;
+        }
+        
         // Provide helpful message with order tracking link
         toast.error(
           <div>
             <p>Unable to confirm payment.</p>
-            <p className="text-sm mt-1">If you paid, your order #{orderNumber.split('-').pop()} will be processed.</p>
+            <p className="text-sm mt-1">If you paid, your order will be processed.</p>
             <a href={`/order-tracking/${orderNumber}`} className="text-orange-500 underline text-sm mt-2 block">
-              Track Order Status →
+              Track Order #{orderNumber.split('-').pop()} →
             </a>
           </div>,
-          { duration: 15000 }
+          { duration: 20000 }
         );
       }
-    }, 3000); // 3 second intervals instead of 5
-  }, [clearPendingPayment, trpcUtils.payment.getPaymentStatus]);
+    }, 3000);
+  }, [trpcUtils.payment.getPaymentStatus, redirectToSuccess, startBackgroundPolling]);
 
   // Handle visibility change - detect when user returns from UPI app
   useEffect(() => {
     const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === 'visible' && !paymentSuccessRef.current) {
         // User returned to the page (possibly from UPI app)
-        const pendingStr = localStorage.getItem("pendingPayment");
-        if (pendingStr && isProcessing) {
+        const pendingStr = sessionStorage.getItem("pendingPayment") || localStorage.getItem("pendingPayment");
+        const paymentInProgress = sessionStorage.getItem("paymentInProgress");
+        
+        if (pendingStr && paymentInProgress) {
           console.log("[Visibility] User returned, checking payment status...");
           try {
             const pending: PendingPayment = JSON.parse(pendingStr);
@@ -199,10 +296,7 @@ export default function Checkout() {
             
             if (result.paymentStatus === "completed") {
               console.log("[Visibility] Payment confirmed on return!");
-              clearPendingPayment();
-              localStorage.removeItem("cart");
-              toast.success("Payment successful! Redirecting...", { id: "payment-check" });
-              window.location.replace(`/order-success?orderNumber=${pending.orderNumber}&orderId=${pending.orderId}`);
+              redirectToSuccess(pending.orderNumber, pending.orderId);
             }
           } catch (e) {
             console.error("[Visibility] Error checking payment:", e);
@@ -228,7 +322,7 @@ export default function Checkout() {
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('pageshow', handleVisibilityChange);
     };
-  }, [isProcessing, clearPendingPayment, trpcUtils.payment.getPaymentStatus]);
+  }, [trpcUtils.payment.getPaymentStatus, redirectToSuccess]);
 
   useEffect(() => {
     // Load cart from localStorage
@@ -401,12 +495,11 @@ export default function Checkout() {
           // Payment successful - this is the ideal path
           console.log("Payment handler called - payment successful");
           
-          // Clear pending payment tracking
-          clearPendingPayment();
-          localStorage.removeItem("cart");
-          
-          // Show immediate success feedback
-          toast.success("Payment successful! Redirecting...", { duration: 2000 });
+          // Mark as success to prevent duplicate handling
+          if (paymentSuccessRef.current) {
+            console.log("Payment already handled, skipping duplicate");
+            return;
+          }
           
           // Verify in background (non-blocking for better UX)
           verifyPaymentMutation.mutate({
@@ -416,13 +509,8 @@ export default function Checkout() {
             razorpaySignature: response.razorpay_signature,
           });
           
-          // Redirect immediately with replace (more reliable on mobile)
-          const successUrl = `/order-success?orderNumber=${orderResponse.orderNumber}&orderId=${orderResponse.orderId}&paymentId=${response.razorpay_payment_id}`;
-          
-          // Small delay to ensure toast is visible, then redirect
-          setTimeout(() => {
-            window.location.replace(successUrl);
-          }, 800);
+          // Use centralized redirect
+          redirectToSuccess(orderResponse.orderNumber, orderResponse.orderId);
         },
         modal: {
           ondismiss: () => {
@@ -449,6 +537,11 @@ export default function Checkout() {
 
       const rzp = new window.Razorpay(options);
       rzp.open();
+      
+      // Start background polling immediately after Razorpay opens
+      // This catches payment success even if the handler doesn't fire (common on old phones)
+      console.log("[Razorpay] Starting background polling alongside payment modal");
+      startBackgroundPolling(orderResponse.orderId, orderResponse.orderNumber);
     } catch (error) {
       console.error("Checkout error:", error);
       toast.error("Failed to process order. Please try again.");
