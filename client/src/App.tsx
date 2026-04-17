@@ -5,7 +5,6 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import Maintenance from "./pages/Maintenance";
 
 // Critical pages - loaded immediately
 import Home from "./pages/Home";
@@ -31,9 +30,6 @@ const PageLoader = () => (
     <div className="w-8 h-8 border-3 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
   </div>
 );
-
-// Force maintenance mode site-wide while you pause the project.
-const FORCE_MAINTENANCE = true;
 
 // Business hours configuration (IST timezone)
 const BUSINESS_HOURS = {
@@ -82,9 +78,6 @@ function getShopStatus(): { isOpen: boolean; openingTime: string; reason: "sunda
 
 function Router() {
   const [location] = useLocation();
-
-  // If maintenance mode is enabled, show the maintenance page for every visitor.
-  if (FORCE_MAINTENANCE) return <Maintenance />;
   
   // Check if current route is an admin route or allowed when closed
   const isAdminRoute = location.startsWith("/admin");
